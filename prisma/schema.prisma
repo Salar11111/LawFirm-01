@@ -1,0 +1,172 @@
+// Prisma schema for Pakistani Law Firm System
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("CLIENT") // ADMIN | LAWYER | CLIENT
+  phone     String?
+  cnic      String?
+  address   String?
+  city      String?
+  avatar    String?
+  bio       String?
+  specialization String?
+  experience Int?
+  barLicense String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clientCases     Case[]      @relation("ClientCases")
+  lawyerCases     Case[]      @relation("LawyerCases")
+  clientApts      Appointment[] @relation("ClientAppointments")
+  lawyerApts      Appointment[] @relation("LawyerAppointments")
+  uploadedDocs    Document[]
+  sentMessages    Message[]   @relation("SentMessages")
+  receivedMessages Message[]  @relation("ReceivedMessages")
+  clientInvoices  Invoice[]
+  reviews         Review[]
+  contacts        Contact[]
+}
+
+model Case {
+  id            String   @id @default(cuid())
+  caseNumber    String   @unique
+  title         String
+  description   String
+  practiceArea  String
+  court         String
+  status        String   @default("PENDING") // PENDING | ACTIVE | HEARING | ADJOURNED | CLOSED | WON | LOST
+  priority      String   @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
+  filedDate     DateTime
+  nextHearing   DateTime?
+  closedDate    DateTime?
+  clientId      String
+  lawyerId      String
+  client        User     @relation("ClientCases", fields: [clientId], references: [id])
+  lawyer        User     @relation("LawyerCases", fields: [lawyerId], references: [id])
+  documents     Document[]
+  updates       CaseUpdate[]
+  invoices      Invoice[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model CaseUpdate {
+  id          String   @id @default(cuid())
+  caseId      String
+  case        Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  updateType  String   @default("NOTE") // NOTE | FILING | HEARING | RULING | DOCUMENT
+  createdBy   String
+  createdAt   DateTime @default(now())
+}
+
+model Appointment {
+  id        String   @id @default(cuid())
+  clientId  String
+  lawyerId  String
+  client    User     @relation("ClientAppointments", fields: [clientId], references: [id])
+  lawyer    User     @relation("LawyerAppointments", fields: [lawyerId], references: [id])
+  date      DateTime
+  time      String
+  duration  Int      @default(60)
+  type      String   @default("CONSULTATION") // CONSULTATION | HEARING_PREP | FOLLOW_UP | DOCUMENT_REVIEW
+  status    String   @default("SCHEDULED") // SCHEDULED | COMPLETED | CANCELLED
+  notes     String?
+  subject   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  caseId      String?
+  case        Case?    @relation(fields: [caseId], references: [id])
+  uploadedBy  String
+  uploader    User     @relation(fields: [uploadedBy], references: [id])
+  title       String
+  type        String   // CONTRACT | PETITION | EVIDENCE | COURT_FILING | ID_PROOF | AGREEMENT | OTHER
+  fileName    String
+  fileSize    Int      @default(0)
+  fileUrl     String
+  description String?
+  createdAt   DateTime @default(now())
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  content    String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  invoiceNumber String   @unique
+  clientId      String
+  client        User     @relation(fields: [clientId], references: [id])
+  caseId        String?
+  case          Case?    @relation(fields: [caseId], references: [id])
+  amount        Float
+  currency      String   @default("PKR")
+  status        String   @default("PENDING") // PENDING | PAID | OVERDUE
+  dueDate       DateTime
+  paidDate      DateTime?
+  description   String
+  items         String   @default("[]")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  name      String
+  role      String
+  content   String
+  rating    Int      @default(5)
+  lawyerId  String?
+  lawyer    User?    @relation(fields: [lawyerId], references: [id])
+  approved  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String
+  subject   String
+  message   String
+  status    String   @default("NEW") // NEW | READ | RESPONDED | CLOSED
+  handledBy String?
+  handler   User?    @relation(fields: [handledBy], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model PracticeArea {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String
+  longDescription String
+  icon        String
+  features    String   @default("[]")
+  createdAt   DateTime @default(now())
+}
