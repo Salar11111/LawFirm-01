@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
+import { caseCreateSchema, caseUpdateSchema } from '@/lib/validations'
+import { getCases, createCase, updateCase, assertCaseAccess } from '@/lib/services'
 
 export const runtime = 'nodejs'
 
-// GET cases — clients see only their own; lawyers/admins see all (optionally filtered)
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -13,30 +13,11 @@ export async function GET(request: NextRequest) {
   const status = searchParams.get('status')
   const search = searchParams.get('search')
 
-  const where: Record<string, unknown> = {}
-
-  if (user.role === 'CLIENT') {
-    where.clientId = user.id
-  }
-  if (status && status !== 'ALL') {
-    where.status = status
-  }
-  if (search) {
-    where.OR = [
-      { title: { contains: search } },
-      { caseNumber: { contains: search } },
-      { court: { contains: search } },
-    ]
-  }
-
-  const cases = await db.case.findMany({
-    where,
-    include: {
-      client: { select: { id: true, name: true, email: true, phone: true, city: true } },
-      lawyer: { select: { id: true, name: true, specialization: true, avatar: true } },
-      _count: { select: { documents: true, updates: true } },
-    },
-    orderBy: { updatedAt: 'desc' },
+  const cases = await getCases({
+    userId: user.id,
+    role: user.role,
+    status: status || undefined,
+    search: search || undefined,
   })
 
   return NextResponse.json({ cases })
@@ -50,50 +31,27 @@ export async function POST(request: NextRequest) {
   }
   try {
     const body = await request.json()
-    const { title, description, practiceArea, court, status, priority, filedDate, nextHearing, clientId, lawyerId } = body
-
-    if (!title || !clientId || !lawyerId || !practiceArea) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    const result = caseCreateSchema.safeParse(body)
+    if (!result.success) {
+      return NextResponse.json({ error: result.error.flatten().fieldErrors }, { status: 400 })
     }
+    const { title, description, practiceArea, court, status, priority, filedDate, nextHearing, clientId, lawyerId } = result.data
 
-    // Generate case number: SLA-YYYY-NNN
-    const year = new Date().getFullYear()
-    const count = await db.case.count()
-    const caseNumber = `SLA-${year}-${String(count + 1).padStart(3, '0')}`
-
-    const newCase = await db.case.create({
-      data: {
-        caseNumber,
-        title,
-        description: description || '',
-        practiceArea,
-        court: court || '',
-        status: status || 'PENDING',
-        priority: priority || 'MEDIUM',
-        filedDate: filedDate ? new Date(filedDate) : new Date(),
-        nextHearing: nextHearing ? new Date(nextHearing) : null,
-        clientId,
-        lawyerId,
-      },
-      include: {
-        client: { select: { id: true, name: true, email: true, phone: true } },
-        lawyer: { select: { id: true, name: true, specialization: true } },
-      },
-    })
-
-    // Create initial case update
-    await db.caseUpdate.create({
-      data: {
-        caseId: newCase.id,
-        title: 'Case Filed',
-        description: `Case ${caseNumber} filed and assigned to the legal team.`,
-        updateType: 'FILING',
-        createdBy: user.id,
-      },
-    })
+    const newCase = await createCase({
+      title,
+      description,
+      practiceArea,
+      court,
+      status,
+      priority,
+      filedDate,
+      nextHearing,
+      clientId,
+      lawyerId,
+    }, user.id, user.role)
 
     return NextResponse.json({ case: newCase })
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: 'Failed to create case' }, { status: 500 })
   }
 }
@@ -105,32 +63,22 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
   try {
-    const { id, ...data } = await request.json()
+    const body = await request.json()
+    const { id, ...data } = body
     if (!id) return NextResponse.json({ error: 'Case ID required' }, { status: 400 })
 
-    const updateData: Record<string, unknown> = {}
-    const allowed = ['title', 'description', 'practiceArea', 'court', 'status', 'priority', 'nextHearing', 'lawyerId', 'filedDate']
-    for (const key of allowed) {
-      if (data[key] !== undefined) {
-        if (key === 'nextHearing' || key === 'filedDate') {
-          updateData[key] = data[key] ? new Date(data[key]) : null
-        } else {
-          updateData[key] = data[key]
-        }
-      }
-    }
-    if (data.status === 'CLOSED' || data.status === 'WON' || data.status === 'LOST') {
-      updateData.closedDate = new Date()
+    const result = caseUpdateSchema.safeParse(data)
+    if (!result.success) {
+      return NextResponse.json({ error: result.error.flatten().fieldErrors }, { status: 400 })
     }
 
-    const updated = await db.case.update({
-      where: { id },
-      data: updateData,
-      include: {
-        client: { select: { id: true, name: true, email: true, phone: true } },
-        lawyer: { select: { id: true, name: true, specialization: true } },
-      },
-    })
+    const access = await assertCaseAccess(id, user.id, user.role)
+    if (!access.ok) return NextResponse.json({ error: access.status === 404 ? 'Case not found' : 'Forbidden' }, { status: access.status })
+    if (user.role === 'LAWYER' && result.data.lawyerId && result.data.lawyerId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const updated = await updateCase(id, result.data)
     return NextResponse.json({ case: updated })
   } catch {
     return NextResponse.json({ error: 'Failed to update case' }, { status: 500 })

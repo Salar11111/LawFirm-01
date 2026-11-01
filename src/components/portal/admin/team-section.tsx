@@ -11,18 +11,33 @@ import { useAppStore } from '@/store/app-store'
 import { api, initials } from '@/lib/helpers'
 import type { User } from '@/lib/types'
 import { SectionHeader } from './section-header'
+import { LoadError } from '@/components/portal/load-error'
 
 export function TeamSection() {
   const openBooking = useAppStore((s) => s.openBooking)
   const [team, setTeam] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setLoadError(false)
     api<{ team: User[] }>('/api/team')
-      .then(({ team }) => setTeam(team))
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
+      .then(({ team }) => {
+        if (!cancelled) setTeam(team)
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError(true)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [attempt])
 
   return (
     <div>
@@ -39,6 +54,11 @@ export function TeamSection() {
               <Skeleton key={i} className="h-72 w-full" />
             ))}
           </div>
+        ) : loadError ? (
+          <LoadError
+            title="The legal team could not be loaded"
+            onRetry={() => setAttempt((n) => n + 1)}
+          />
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {team.map((m) => (

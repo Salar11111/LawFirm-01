@@ -468,7 +468,7 @@ function StatusDropdown({
 }: {
   label: string
   value: string
-  options: string[]
+  options: readonly string[]
   onChange: (v: string) => void
 }) {
   return (

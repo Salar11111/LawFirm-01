@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/store/app-store'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -95,7 +96,8 @@ interface SidebarContentProps {
 }
 
 export function SidebarContent({ active, onSelect, user }: SidebarContentProps) {
-  const { logout, setView } = useAppStore()
+  const router = useRouter()
+  const logout = useAppStore((s) => s.logout)
   const isAdmin = user.role === 'ADMIN'
 
   return (
@@ -168,7 +170,7 @@ export function SidebarContent({ active, onSelect, user }: SidebarContentProps) 
             variant="outline"
             size="sm"
             className="gap-1.5"
-            onClick={() => setView('home')}
+            onClick={() => router.push('/')}
           >
             <Globe className="h-3.5 w-3.5" />
             Website
@@ -177,7 +179,7 @@ export function SidebarContent({ active, onSelect, user }: SidebarContentProps) 
             variant="outline"
             size="sm"
             className="gap-1.5"
-            onClick={() => logout()}
+            onClick={() => { void logout().then(() => router.push('/')) }}
           >
             <LogOut className="h-3.5 w-3.5" />
             Logout

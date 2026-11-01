@@ -31,6 +31,7 @@ import {
   DOCUMENT_TYPE_LABELS,
   INVOICE_STATUS_LABELS,
 } from './labels'
+import { LoadError } from '@/components/portal/load-error'
 
 interface Props {
   caseId: string | null
@@ -60,21 +61,27 @@ export function CaseDetailDialog({ caseId, open, onOpenChange }: Props) {
 function CaseDetailBody({ caseId }: { caseId: string }) {
   const [data, setData] = useState<Case | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let cancelled = false
+    setLoading(true)
+    setLoadError(false)
     api<{ case: Case }>(`/api/cases/${caseId}`)
       .then(({ case: c }) => {
         if (!cancelled) setData(c)
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setLoadError(true)
+      })
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
     return () => {
       cancelled = true
     }
-  }, [caseId])
+  }, [caseId, attempt])
 
   const lawyer = data?.lawyer as User | undefined
   const updates = (data?.updates ?? []) as CaseUpdate[]
@@ -123,8 +130,11 @@ function CaseDetailBody({ caseId }: { caseId: string }) {
         <div className="space-y-5 px-5 py-5 sm:px-6">
           {loading ? (
             <DialogSkeleton />
-          ) : !data ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">Unable to load case details.</p>
+          ) : loadError || !data ? (
+            <LoadError
+              title="Case details could not be loaded"
+              onRetry={() => setAttempt((n) => n + 1)}
+            />
           ) : (
             <>
               {/* Description */}
@@ -234,13 +244,13 @@ function CaseDetailBody({ caseId }: { caseId: string }) {
                             <span className="hidden sm:inline">· {formatDate(d.createdAt)}</span>
                           </p>
                         </div>
-                        <button
-                          type="button"
+                        <a
+                          href={`/api/documents/${d.id}/file`}
                           className="flex h-8 w-8 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10"
                           aria-label={`Download ${d.title}`}
                         >
                           <Download className="h-4 w-4" />
-                        </button>
+                        </a>
                       </li>
                     ))}
                   </ul>

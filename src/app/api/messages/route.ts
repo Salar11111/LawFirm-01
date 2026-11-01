@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
+import { messageSchema } from '@/lib/validations'
+import { verifyCsrfToken } from '@/lib/csrf'
+import { getMessages, createMessage, sharesMatter } from '@/lib/services'
 
 export const runtime = 'nodejs'
 
@@ -12,49 +14,31 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const partnerId = searchParams.get('partnerId')
 
-  const where: Record<string, unknown> = {
-    OR: [{ senderId: user.id }, { receiverId: user.id }],
-  }
-  if (partnerId) {
-    where.AND = [{ OR: [{ senderId: partnerId }, { receiverId: partnerId }] }]
-  }
-
-  const messages = await db.message.findMany({
-    where,
-    include: {
-      sender: { select: { id: true, name: true, role: true, avatar: true } },
-      receiver: { select: { id: true, name: true, role: true, avatar: true } },
-    },
-    orderBy: { createdAt: 'asc' },
+  const messages = await getMessages({
+    userId: user.id,
+    partnerId: partnerId || undefined,
   })
-
-  // Mark received messages as read
-  if (partnerId) {
-    await db.message.updateMany({
-      where: { senderId: partnerId, receiverId: user.id, read: false },
-      data: { read: true },
-    })
-  }
 
   return NextResponse.json({ messages })
 }
 
 export async function POST(request: NextRequest) {
+  if (!verifyCsrfToken(request)) {
+    return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 })
+  }
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const { receiverId, content } = await request.json()
-    if (!receiverId || !content) {
-      return NextResponse.json({ error: 'Receiver and content are required' }, { status: 400 })
+    const body = await request.json()
+    const result = messageSchema.safeParse(body)
+    if (!result.success) {
+      return NextResponse.json({ error: result.error.flatten().fieldErrors }, { status: 400 })
     }
-    const message = await db.message.create({
-      data: { senderId: user.id, receiverId, content },
-      include: {
-        sender: { select: { id: true, name: true, role: true, avatar: true } },
-        receiver: { select: { id: true, name: true, role: true, avatar: true } },
-      },
-    })
+    const { receiverId, content } = result.data
+    const allowed = await sharesMatter(user.id, receiverId)
+    if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const message = await createMessage({ receiverId, content }, user.id)
     return NextResponse.json({ message })
   } catch {
     return NextResponse.json({ error: 'Failed to send message' }, { status: 500 })

@@ -36,8 +36,15 @@ export function MessagesSection() {
 
   useEffect(() => {
     let cancelled = false
-    api<{ clients: ClientRow[] }>('/api/clients')
-      .then(({ clients }) => { if (!cancelled) setClients(clients) })
+    api<{ cases: { client?: ClientRow }[] }>('/api/cases')
+      .then(({ cases }) => {
+        if (cancelled) return
+        const people = new Map<string, ClientRow>()
+        for (const matter of cases ?? []) {
+          if (matter.client) people.set(matter.client.id, matter.client)
+        }
+        setClients([...people.values()])
+      })
       .catch(() => { if (!cancelled) toast.error('Failed to load clients') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }

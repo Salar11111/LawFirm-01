@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/store/app-store'
 import { Logo } from '@/components/shared/logo'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -59,7 +60,7 @@ export function PortalSidebar({
   user,
   onNavigate,
 }: SidebarProps) {
-  const setView = useAppStore((s) => s.setView)
+  const router = useRouter()
   const logout = useAppStore((s) => s.logout)
 
   const handleSelect = (id: PortalSection) => {
@@ -68,8 +69,14 @@ export function PortalSidebar({
   }
 
   const goHome = () => {
-    setView('home')
+    router.push('/')
     onNavigate?.()
+  }
+
+  const signOut = async () => {
+    await logout()
+    onNavigate?.()
+    router.push('/')
   }
 
   return (
@@ -141,7 +148,7 @@ export function PortalSidebar({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => { logout(); onNavigate?.() }}
+          onClick={() => { void signOut() }}
           className="mt-2 w-full justify-center gap-2 border-sidebar-border bg-transparent"
         >
           <LogOut className="h-4 w-4" />

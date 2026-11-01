@@ -22,27 +22,34 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APPOINTMENT_TYPE_LABELS, APPOINTMENT_STATUS_LABELS } from './labels'
+import { LoadError } from '@/components/portal/load-error'
 
 export function AppointmentsSection() {
   const openBooking = useAppStore((s) => s.openBooking)
 
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let cancelled = false
+    setLoading(true)
+    setLoadError(false)
     api<{ appointments: Appointment[] }>('/api/appointments')
       .then(({ appointments: a }) => {
         if (!cancelled) setAppointments(a ?? [])
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setLoadError(true)
+      })
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [attempt])
 
   const now = new Date()
   const upcoming = appointments
@@ -51,6 +58,15 @@ export function AppointmentsSection() {
   const past = appointments
     .filter((a) => new Date(a.date) < now || a.status !== 'SCHEDULED')
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+  if (loadError) {
+    return (
+      <LoadError
+        title="Appointments could not be loaded"
+        onRetry={() => setAttempt((n) => n + 1)}
+      />
+    )
+  }
 
   return (
     <div className="space-y-5">

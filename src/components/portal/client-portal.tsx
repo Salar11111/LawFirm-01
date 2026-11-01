@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/store/app-store'
 import { PortalSidebar, type PortalSection } from './client/portal-sidebar'
 import { OverviewSection } from './client/overview-section'
@@ -24,12 +25,20 @@ const SECTION_META: Record<PortalSection, { title: string; subtitle: string }> =
   profile: { title: 'Profile', subtitle: 'Your personal account information' },
 }
 
-export function ClientPortal() {
+export function ClientPortal({ section }: { section: PortalSection }) {
+  const router = useRouter()
   const user = useAppStore((s) => s.user)
+  const hydrated = useAppStore((s) => s.hydrated)
   const openBooking = useAppStore((s) => s.openBooking)
-  const [section, setSection] = useState<PortalSection>('overview')
   const [mobileOpen, setMobileOpen] = useState(false)
 
+  const setSection = (next: PortalSection) => {
+    router.push(next === 'overview' ? '/portal' : `/portal/${next}`)
+  }
+
+  if (!hydrated) {
+    return <div className="p-8 text-sm text-muted-foreground">Loading your account…</div>
+  }
   if (!user) return null
 
   const meta = SECTION_META[section]
@@ -54,10 +63,10 @@ export function ClientPortal() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] bg-background lg:min-h-[calc(100vh-5rem)]">
+    <div className="flex min-h-screen bg-background">
       {/* Desktop sidebar */}
       <aside className="hidden w-64 shrink-0 border-r border-sidebar-border lg:block">
-        <div className="sticky top-16 h-[calc(100vh-4rem)] lg:top-20 lg:h-[calc(100vh-5rem)]">
+        <div className="sticky top-0 h-screen">
           <PortalSidebar
             activeSection={section}
             onSectionChange={setSection}
@@ -82,7 +91,7 @@ export function ClientPortal() {
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top bar */}
-        <header className="sticky top-16 z-30 border-b border-border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70 lg:top-20">
+        <header className="sticky top-0 z-30 border-b border-border bg-background/95">
           <div className="flex items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
             <Button
               variant="ghost"

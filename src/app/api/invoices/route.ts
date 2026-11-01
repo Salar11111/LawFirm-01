@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { verifyCsrfToken } from '@/lib/csrf'
 import { getCurrentUser } from '@/lib/auth'
+import { invoiceSchema, invoiceStatusSchema } from '@/lib/validations'
+import { getInvoices, createInvoice, updateInvoice, assertInvoiceAccess } from '@/lib/services'
+import { db } from '@/lib/db'
 
 export const runtime = 'nodejs'
 
@@ -8,46 +11,44 @@ export async function GET(request: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const where: Record<string, unknown> = {}
-  if (user.role === 'CLIENT') where.clientId = user.id
-
-  const invoices = await db.invoice.findMany({
-    where,
-    include: {
-      client: { select: { id: true, name: true, email: true } },
-      case: { select: { id: true, caseNumber: true, title: true } },
-    },
-    orderBy: { createdAt: 'desc' },
+  const invoices = await getInvoices({
+    userId: user.id,
+    role: user.role,
   })
 
   return NextResponse.json({ invoices })
 }
 
 export async function POST(request: NextRequest) {
+  if (!verifyCsrfToken(request)) {
+    return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 })
+  }
   const user = await getCurrentUser()
   if (!user || (user.role !== 'ADMIN' && user.role !== 'LAWYER')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
   try {
-    const { clientId, caseId, amount, description, dueDate, items, status } = await request.json()
-    if (!clientId || !amount || !description) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    const body = await request.json()
+    const result = invoiceSchema.safeParse(body)
+    if (!result.success) {
+      return NextResponse.json({ error: result.error.flatten().fieldErrors }, { status: 400 })
     }
-    const count = await db.invoice.count()
-    const invoiceNumber = `INV-${new Date().getFullYear()}-${String(count + 1).padStart(3, '0')}`
-
-    const invoice = await db.invoice.create({
-      data: {
-        invoiceNumber,
-        clientId,
-        caseId: caseId || null,
-        amount: parseFloat(amount),
-        description,
-        dueDate: new Date(dueDate),
-        items: JSON.stringify(items || []),
-        status: status || 'PENDING',
-      },
-    })
+    const { clientId, caseId, amount, description, dueDate, items, status, invoiceNumber } = result.data
+    if (user.role === 'LAWYER') {
+      if (!caseId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      const matter = await db.case.findFirst({ where: { id: caseId, lawyerId: user.id, clientId } })
+      if (!matter) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    const invoice = await createInvoice({
+      clientId,
+      caseId: caseId || undefined,
+      amount,
+      description,
+      dueDate,
+      items,
+      status,
+      invoiceNumber,
+    }, user.id)
     return NextResponse.json({ invoice })
   } catch {
     return NextResponse.json({ error: 'Failed to create invoice' }, { status: 500 })
@@ -55,15 +56,25 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  if (!verifyCsrfToken(request)) {
+    return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 })
+  }
   const user = await getCurrentUser()
   if (!user || (user.role !== 'ADMIN' && user.role !== 'LAWYER')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
   try {
-    const { id, status } = await request.json()
-    const updateData: Record<string, unknown> = { status }
-    if (status === 'PAID') updateData.paidDate = new Date()
-    const updated = await db.invoice.update({ where: { id }, data: updateData })
+    const body = await request.json()
+    const result = invoiceStatusSchema.safeParse(body)
+    if (!result.success) {
+      return NextResponse.json({ error: result.error.flatten().fieldErrors }, { status: 400 })
+    }
+    const { id, status } = result.data
+    const access = await assertInvoiceAccess(id, user.id, user.role)
+    if (!access.ok) {
+      return NextResponse.json({ error: access.status === 404 ? 'Invoice not found' : 'Forbidden' }, { status: access.status })
+    }
+    const updated = await updateInvoice(id, { status }, user.id)
     return NextResponse.json({ invoice: updated })
   } catch {
     return NextResponse.json({ error: 'Failed to update invoice' }, { status: 500 })

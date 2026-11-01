@@ -1,17 +1,12 @@
 import { create } from 'zustand'
-import type { User, ViewMode } from '@/lib/types'
+import type { User } from '@/lib/types'
+import { api } from '@/lib/helpers'
 
 interface AppState {
-  // Navigation
-  view: ViewMode
-  setView: (view: ViewMode) => void
-
-  // Auth
   user: User | null
   setUser: (user: User | null) => void
-  logout: () => void
+  logout: () => Promise<void>
 
-  // UI
   loginOpen: boolean
   setLoginOpen: (open: boolean) => void
   registerOpen: boolean
@@ -21,31 +16,23 @@ interface AppState {
   openBooking: (lawyerId?: string | null) => void
   setBookingOpen: (open: boolean) => void
 
-  // Selected practice area for detail dialog
   selectedPracticeArea: string | null
   setSelectedPracticeArea: (slug: string | null) => void
 
-  // Hydration flag
   hydrated: boolean
   setHydrated: (v: boolean) => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
-  view: 'home',
-  setView: (view) => {
-    set({ view })
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    }
-  },
-
   user: null,
   setUser: (user) => set({ user }),
   logout: async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' })
-    } catch {}
-    set({ user: null, view: 'home' })
+      await api('/api/auth/logout', { method: 'POST' })
+    } catch {
+      // The local session still ends if the request fails.
+    }
+    set({ user: null })
   },
 
   loginOpen: false,

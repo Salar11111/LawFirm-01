@@ -1,17 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { createSession } from '@/lib/auth'
+﻿import { NextRequest, NextResponse } from 'next/server'
+import { createSession, sessionCookieOptions } from '@/lib/auth'
 import { verifyPassword } from '@/lib/password'
+import { loginSchema } from '@/lib/validations'
+import { verifyCsrfToken } from '@/lib/csrf'
+import { loginRateLimiter, rateLimit } from '@/lib/rate-limit'
+import { getUserByEmail } from '@/lib/services'
 
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
+  const limited = rateLimit(request, loginRateLimiter)
+  if (limited) return limited
+  if (!verifyCsrfToken(request)) {
+    return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 })
+  }
   try {
-    const { email, password } = await request.json()
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
+    const body = await request.json()
+    const result = loginSchema.safeParse(body)
+    if (!result.success) {
+      return NextResponse.json({ error: result.error.flatten().fieldErrors }, { status: 400 })
     }
-    const user = await db.user.findUnique({ where: { email: email.toLowerCase().trim() } })
+    const { email, password } = result.data
+    const user = await getUserByEmail(email)
     if (!user || !user.active) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
@@ -22,12 +32,7 @@ export async function POST(request: NextRequest) {
     const token = createSession(user.id)
     const { password: _pw, ...safeUser } = user
     const response = NextResponse.json({ user: safeUser })
-    response.cookies.set('session', token, {
-      httpOnly: true,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    })
+    response.cookies.set('session', token, sessionCookieOptions())
     return response
   } catch {
     return NextResponse.json({ error: 'Login failed' }, { status: 500 })

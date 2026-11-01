@@ -1,4 +1,4 @@
-import { db } from '@/lib/db'
+﻿import { db } from '@/lib/db'
 
 // Currency formatting — Pakistani Rupee
 export function formatPKR(amount: number): string {
@@ -137,21 +137,74 @@ export const PRACTICE_AREAS_LIST = [
   'Cyber & IT Law',
 ]
 
-export const CASE_STATUSES = ['PENDING', 'ACTIVE', 'HEARING', 'ADJOURNED', 'CLOSED', 'WON', 'LOST']
-export const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
-export const APPOINTMENT_TYPES = ['CONSULTATION', 'HEARING_PREP', 'FOLLOW_UP', 'DOCUMENT_REVIEW']
-export const APPOINTMENT_STATUSES = ['SCHEDULED', 'COMPLETED', 'CANCELLED']
-export const INVOICE_STATUSES = ['PENDING', 'PAID', 'OVERDUE']
-export const DOCUMENT_TYPES = ['CONTRACT', 'PETITION', 'EVIDENCE', 'COURT_FILING', 'ID_PROOF', 'AGREEMENT', 'OTHER']
+export {
+  CASE_STATUSES,
+  PRIORITIES,
+  APPOINTMENT_TYPES,
+  APPOINTMENT_STATUSES,
+  INVOICE_STATUSES,
+  DOCUMENT_TYPES,
+} from '@/lib/enums'
+
+function getClientCsrfToken(): string | null {
+  if (typeof document === 'undefined') return null
+  const match = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]+)/)
+  if (match) {
+    try {
+      return decodeURIComponent(match[1])
+    } catch {
+      // fall through to localStorage
+    }
+  }
+  if (typeof localStorage !== 'undefined') {
+    return localStorage.getItem('csrf-token')
+  }
+  return null
+}
+
+let csrfRequest: Promise<string | null> | null = null
+
+async function ensureCsrfToken(): Promise<string | null> {
+  const existing = getClientCsrfToken()
+  if (existing) return existing
+  if (!csrfRequest) {
+    csrfRequest = fetch('/api/csrf', { credentials: 'same-origin' })
+      .then(async (res) => {
+        const data = (await res.json().catch(() => ({}))) as { token?: unknown }
+        const token = typeof data.token === 'string' ? data.token : null
+        if (token && typeof localStorage !== 'undefined') localStorage.setItem('csrf-token', token)
+        return getClientCsrfToken() || token
+      })
+      .catch(() => null)
+      .finally(() => {
+        csrfRequest = null
+      })
+  }
+  return csrfRequest
+}
 
 // Fetch wrapper that auto-handles JSON
 export async function api<T = unknown>(
   url: string,
   options?: RequestInit,
 ): Promise<T> {
+  const method = (options?.method ?? 'GET').toUpperCase()
+  const isMutating = ['POST', 'PATCH', 'PUT', 'DELETE'].includes(method)
+
+  const headers = new Headers(options?.headers)
+  const isFormData = typeof FormData !== 'undefined' && options?.body instanceof FormData
+  if (!isFormData && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
+  }
+
+  if (isMutating) {
+    const csrfToken = await ensureCsrfToken()
+    if (csrfToken) headers.set('x-csrf-token', csrfToken)
+  }
+
   const res = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...(options?.headers ?? {}) },
     ...options,
+    headers,
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {

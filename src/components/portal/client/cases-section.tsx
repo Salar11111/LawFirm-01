@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils'
 import { CASE_STATUS_LABELS, CASE_STATUS_LABELS as CS, PRIORITY_LABELS } from './labels'
 import { CASE_STATUSES } from '@/lib/helpers'
 import { CaseDetailDialog } from './case-detail-dialog'
+import { LoadError } from '@/components/portal/load-error'
 
 export function CasesSection() {
   const user = useAppStore((s) => s.user)
@@ -39,6 +40,8 @@ export function CasesSection() {
 
   const [cases, setCases] = useState<Case[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -46,18 +49,22 @@ export function CasesSection() {
 
   useEffect(() => {
     let cancelled = false
+    setLoading(true)
+    setLoadError(false)
     api<{ cases: Case[] }>('/api/cases')
       .then(({ cases: c }) => {
         if (!cancelled) setCases(c ?? [])
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setLoadError(true)
+      })
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [attempt])
 
   const filtered = cases.filter((c) => {
     if (statusFilter !== 'ALL' && c.status !== statusFilter) return false
@@ -76,6 +83,15 @@ export function CasesSection() {
   const openCase = (id: string) => {
     setSelectedId(id)
     setDetailOpen(true)
+  }
+
+  if (loadError) {
+    return (
+      <LoadError
+        title="Cases could not be loaded"
+        onRetry={() => setAttempt((n) => n + 1)}
+      />
+    )
   }
 
   return (

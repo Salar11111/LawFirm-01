@@ -18,11 +18,11 @@ import {
   ArrowRight,
   Gavel,
   CalendarDays,
-  Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { UPDATE_TYPE_LABELS, CASE_STATUS_LABELS, APPOINTMENT_TYPE_LABELS } from './labels'
 import type { PortalSection } from './portal-sidebar'
+import { LoadError } from '@/components/portal/load-error'
 
 const ACTIVE_STATUSES = ['PENDING', 'ACTIVE', 'HEARING', 'ADJOURNED']
 
@@ -41,9 +41,13 @@ export function OverviewSection({ onNavigate }: { onNavigate: (s: PortalSection)
   const [documents, setDocuments] = useState<DocumentItem[]>([])
   const [updatesFeed, setUpdatesFeed] = useState<UpdateFeedItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let cancelled = false
+    setLoading(true)
+    setLoadError(false)
     Promise.all([
       api<{ cases: Case[] }>('/api/cases'),
       api<{ appointments: Appointment[] }>('/api/appointments'),
@@ -81,14 +85,16 @@ export function OverviewSection({ onNavigate }: { onNavigate: (s: PortalSection)
         feed.sort((x, y) => new Date(y.createdAt).getTime() - new Date(x.createdAt).getTime())
         setUpdatesFeed(feed.slice(0, 5))
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setLoadError(true)
+      })
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [attempt])
 
   const activeCases = cases.filter((c) => ACTIVE_STATUSES.includes(c.status)).length
   const now = new Date()
@@ -104,14 +110,10 @@ export function OverviewSection({ onNavigate }: { onNavigate: (s: PortalSection)
   return (
     <div className="space-y-6">
       {/* Welcome banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-primary text-primary-foreground shadow-lg">
-        <div className="absolute inset-0 bg-pattern-dots opacity-[0.15]" aria-hidden />
-        <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-accent/20 blur-3xl" aria-hidden />
-        <div className="absolute -bottom-16 right-24 h-40 w-40 rounded-full bg-white/10 blur-3xl" aria-hidden />
-        <div className="relative flex flex-col gap-4 p-6 sm:p-8 lg:flex-row lg:items-center lg:justify-between">
+      <div className="border-l-2 border-accent bg-primary text-primary-foreground">
+        <div className="flex flex-col gap-4 px-6 py-6 sm:px-8 sm:py-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-xl">
-            <p className="mb-1.5 flex items-center gap-2 text-sm font-medium text-primary-foreground/80">
-              <Sparkles className="h-4 w-4 text-accent" />
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-foreground/70">
               {greeting}
             </p>
             <h2 className="font-serif text-2xl font-bold sm:text-3xl">
@@ -142,6 +144,13 @@ export function OverviewSection({ onNavigate }: { onNavigate: (s: PortalSection)
         </div>
       </div>
 
+      {loadError && !loading ? (
+        <LoadError
+          title="Your portal could not be loaded"
+          onRetry={() => setAttempt((n) => n + 1)}
+        />
+      ) : (
+      <>
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
@@ -341,6 +350,8 @@ export function OverviewSection({ onNavigate }: { onNavigate: (s: PortalSection)
             </div>
           </CardContent>
         </Card>
+      )}
+      </>
       )}
     </div>
   )

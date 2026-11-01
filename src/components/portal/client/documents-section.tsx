@@ -38,6 +38,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { DOCUMENT_TYPE_LABELS } from './labels'
+import { LoadError } from '@/components/portal/load-error'
 import { DOCUMENT_TYPES } from '@/lib/helpers'
 
 const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -53,23 +54,29 @@ const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
 export function DocumentsSection() {
   const [documents, setDocuments] = useState<DocumentItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('ALL')
 
   useEffect(() => {
     let cancelled = false
+    setLoading(true)
+    setLoadError(false)
     api<{ documents: DocumentItem[] }>('/api/documents')
       .then(({ documents: d }) => {
         if (!cancelled) setDocuments(d ?? [])
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setLoadError(true)
+      })
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [attempt])
 
   const filtered = documents.filter((d) => {
     if (typeFilter !== 'ALL' && d.type !== typeFilter) return false
@@ -86,6 +93,15 @@ export function DocumentsSection() {
   })
 
   const totalSize = documents.reduce((sum, d) => sum + (d.fileSize ?? 0), 0)
+
+  if (loadError) {
+    return (
+      <LoadError
+        title="Documents could not be loaded"
+        onRetry={() => setAttempt((n) => n + 1)}
+      />
+    )
+  }
 
   return (
     <div className="space-y-5">
@@ -188,13 +204,10 @@ export function DocumentsSection() {
                       <TableCell className="text-xs text-muted-foreground">{formatDate(d.createdAt)}</TableCell>
                       <TableCell className="text-right text-xs text-muted-foreground">{formatFileSize(d.fileSize)}</TableCell>
                       <TableCell className="pr-5 text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-primary opacity-70 group-hover:opacity-100"
-                          aria-label={`Download ${d.title}`}
-                        >
-                          <Download className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary opacity-70 group-hover:opacity-100" asChild>
+                          <a href={`/api/documents/${d.id}/file`} aria-label={`Download ${d.title}`}>
+                            <Download className="h-4 w-4" />
+                          </a>
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -227,8 +240,10 @@ export function DocumentsSection() {
                           <span>{formatDate(d.createdAt)}</span>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-primary" aria-label={`Download ${d.title}`}>
-                        <Download className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-primary" asChild>
+                        <a href={`/api/documents/${d.id}/file`} aria-label={`Download ${d.title}`}>
+                          <Download className="h-4 w-4" />
+                        </a>
                       </Button>
                     </div>
                   </CardContent>

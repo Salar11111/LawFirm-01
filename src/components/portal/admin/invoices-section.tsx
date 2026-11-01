@@ -107,7 +107,7 @@ export function InvoicesSection() {
         setClients(c.clients)
         setCases(cs.cases)
       })
-      .catch(() => {})
+      .catch(() => { if (!cancelled) toast.error('Failed to load clients and cases') })
     return () => { cancelled = true }
   }, [])
 

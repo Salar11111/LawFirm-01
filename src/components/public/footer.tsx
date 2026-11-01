@@ -1,20 +1,19 @@
 'use client'
 
+import Link from 'next/link'
 import { useAppStore } from '@/store/app-store'
 import { Logo } from '@/components/shared/logo'
 import { MapPin, Phone, Mail, Clock, Facebook, Linkedin, Twitter, Send } from 'lucide-react'
-import type { ViewMode } from '@/lib/types'
 
 export function Footer() {
-  const setView = useAppStore((s) => s.setView)
   const setLoginOpen = useAppStore((s) => s.setLoginOpen)
 
-  const quickLinks: { label: string; view: ViewMode }[] = [
-    { label: 'Home', view: 'home' },
-    { label: 'Practice Areas', view: 'practice-areas' },
-    { label: 'About Us', view: 'about' },
-    { label: 'Our Team', view: 'team' },
-    { label: 'Contact', view: 'contact' },
+  const quickLinks = [
+    { label: 'Home', href: '/' },
+    { label: 'Practice Areas', href: '/practice-areas' },
+    { label: 'About Us', href: '/about' },
+    { label: 'Our Team', href: '/team' },
+    { label: 'Contact', href: '/contact' },
   ]
 
   return (
@@ -50,13 +49,10 @@ export function Footer() {
             <h3 className="font-serif text-lg font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2.5">
               {quickLinks.map((link) => (
-                <li key={link.view}>
-                  <button
-                    onClick={() => setView(link.view)}
-                    className="text-sm text-background/70 transition-colors hover:text-background"
-                  >
+                <li key={link.href}>
+                  <Link href={link.href} className="text-sm text-background/70 transition-colors hover:text-background">
                     {link.label}
-                  </button>
+                  </Link>
                 </li>
               ))}
               <li>
@@ -74,12 +70,12 @@ export function Footer() {
           <div>
             <h3 className="font-serif text-lg font-semibold mb-4">Practice Areas</h3>
             <ul className="space-y-2.5 text-sm text-background/70">
-              <li><button onClick={() => setView('practice-areas')} className="hover:text-background">Family Law</button></li>
-              <li><button onClick={() => setView('practice-areas')} className="hover:text-background">Corporate & Commercial</button></li>
-              <li><button onClick={() => setView('practice-areas')} className="hover:text-background">Criminal Defense</button></li>
-              <li><button onClick={() => setView('practice-areas')} className="hover:text-background">Property & Real Estate</button></li>
-              <li><button onClick={() => setView('practice-areas')} className="hover:text-background">Banking & Finance</button></li>
-              <li><button onClick={() => setView('practice-areas')} className="hover:text-background">Constitutional Law</button></li>
+              <li><Link href="/practice-areas" className="hover:text-background">Family Law</Link></li>
+              <li><Link href="/practice-areas" className="hover:text-background">Corporate & Commercial</Link></li>
+              <li><Link href="/practice-areas" className="hover:text-background">Criminal Defense</Link></li>
+              <li><Link href="/practice-areas" className="hover:text-background">Property & Real Estate</Link></li>
+              <li><Link href="/practice-areas" className="hover:text-background">Banking & Finance</Link></li>
+              <li><Link href="/practice-areas" className="hover:text-background">Constitutional Law</Link></li>
             </ul>
           </div>
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/store/app-store'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -12,7 +13,8 @@ import { api } from '@/lib/helpers'
 import type { User } from '@/lib/types'
 
 export function LoginDialog() {
-  const { loginOpen, setLoginOpen, setRegisterOpen, setUser, setView } = useAppStore()
+  const router = useRouter()
+  const { loginOpen, setLoginOpen, setRegisterOpen, setUser } = useAppStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
@@ -36,7 +38,7 @@ export function LoginDialog() {
       toast.success(`Welcome back, ${user.name.split(' ')[0]}!`)
       setLoginOpen(false)
       reset()
-      setView(user.role === 'CLIENT' ? 'client-portal' : 'admin-portal')
+      router.push(user.role === 'CLIENT' ? '/portal' : '/dashboard')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Login failed')
     } finally {

@@ -51,7 +51,7 @@ export function BookingDialog() {
         setTeam(team)
         const initial = bookingLawyerId || team[0]?.id || ''
         setForm((p) => ({ ...p, lawyerId: initial }))
-      }).catch(() => {})
+      }).catch(() => toast.error('Failed to load lawyers'))
       // default date = tomorrow
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)

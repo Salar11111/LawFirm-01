@@ -34,7 +34,8 @@ export interface Case {
   client?: User
   lawyer?: User
   updates?: CaseUpdate[]
-  documents?: Document[]
+  documents?: DocumentItem[]
+  invoices?: Invoice[]
   createdAt: string
   updatedAt: string
 }
@@ -68,6 +69,7 @@ export interface Appointment {
 export interface DocumentItem {
   id: string
   caseId: string | null
+  case?: Case
   uploadedBy: string
   title: string
   type: string

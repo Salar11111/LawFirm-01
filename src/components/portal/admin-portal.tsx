@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAppStore } from '@/store/app-store'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
@@ -16,25 +17,30 @@ import { TeamSection } from './admin/team-section'
 import { MessagesSection } from './admin/messages-section'
 import { InquiriesSection } from './admin/inquiries-section'
 
-export function AdminPortal() {
+export function AdminPortal({ section }: { section: AdminSection }) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const user = useAppStore((s) => s.user)
-  const [section, setSection] = useState<AdminSection>('dashboard')
+  const hydrated = useAppStore((s) => s.hydrated)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [activeCaseId, setActiveCaseId] = useState<string | null>(null)
+  const activeCaseId = searchParams.get('case')
 
-  const handleSelect = useCallback((s: AdminSection) => {
-    setSection(s)
+  const handleSelect = useCallback((next: AdminSection) => {
     setMobileOpen(false)
-    // Clear active case when leaving cases section
-    if (s !== 'cases') setActiveCaseId(null)
-  }, [])
+    router.push(next === 'dashboard' ? '/dashboard' : `/dashboard/${next}`)
+  }, [router])
 
-  // Open a case from anywhere (e.g. dashboard recent cases)
   const handleOpenCase = useCallback((caseId: string) => {
-    setSection('cases')
-    setActiveCaseId(caseId)
-  }, [])
+    router.push(`/dashboard/cases?case=${caseId}`)
+  }, [router])
 
+  const setActiveCaseId = useCallback((caseId: string | null) => {
+    router.replace(caseId ? `/dashboard/cases?case=${caseId}` : '/dashboard/cases')
+  }, [router])
+
+  if (!hydrated) {
+    return <div className="p-8 text-sm text-muted-foreground">Loading your account…</div>
+  }
   if (!user) return null
 
   const renderSection = () => {

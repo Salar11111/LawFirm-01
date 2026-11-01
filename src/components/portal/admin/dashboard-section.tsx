@@ -41,6 +41,7 @@ import {
 } from '@/lib/helpers'
 import type { Case, Invoice } from '@/lib/types'
 import { SectionHeader } from './section-header'
+import { LoadError } from '@/components/portal/load-error'
 
 interface FirmStats {
   cases: number
@@ -119,9 +120,13 @@ export function DashboardSection({ onOpenCase }: DashboardProps) {
   const [cases, setCases] = useState<Case[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let cancelled = false
+    setLoading(true)
+    setLoadError(false)
     Promise.all([
       api<{ stats: FirmStats }>('/api/stats'),
       api<{ cases: Case[] }>('/api/cases'),
@@ -133,14 +138,16 @@ export function DashboardSection({ onOpenCase }: DashboardProps) {
         setCases(c.cases)
         setInvoices(inv.invoices)
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setLoadError(true)
+      })
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [attempt])
 
   // Derived metrics
   const totalRevenue = useMemo(
@@ -208,6 +215,13 @@ export function DashboardSection({ onOpenCase }: DashboardProps) {
       />
 
       <div className="space-y-6 p-4 sm:p-6">
+        {loadError && !loading ? (
+          <LoadError
+            title="The dashboard could not be loaded"
+            onRetry={() => setAttempt((n) => n + 1)}
+          />
+        ) : (
+        <>
         {/* KPI cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <KpiCard icon={Briefcase} label="Total Cases" value={String(stats?.cases ?? 0)} loading={loading} />
@@ -468,6 +482,8 @@ export function DashboardSection({ onOpenCase }: DashboardProps) {
             )}
           </Card>
         </div>
+        </>
+        )}
       </div>
     </div>
   )

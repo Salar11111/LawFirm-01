@@ -22,6 +22,7 @@ import {
   Mailbox,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { LoadError } from '@/components/portal/load-error'
 import { toast } from 'sonner'
 
 export function MessagesSection() {
@@ -38,42 +39,58 @@ export function MessagesSection() {
 
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  const [teamError, setTeamError] = useState(false)
+  const [teamAttempt, setTeamAttempt] = useState(0)
+  const [msgError, setMsgError] = useState(false)
+  const [msgAttempt, setMsgAttempt] = useState(0)
+
   // Fetch team list once
   useEffect(() => {
     let cancelled = false
-    api<{ team: User[] }>('/api/team')
-      .then(({ team: t }) => {
-        if (!cancelled) {
-          setTeam(t ?? [])
-          if (t && t.length > 0) setSelectedId(t[0].id)
+    setTeamLoading(true)
+    setTeamError(false)
+    api<{ cases: { lawyer?: User }[] }>('/api/cases')
+      .then(({ cases }) => {
+        if (cancelled) return
+        const lawyers = new Map<string, User>()
+        for (const matter of cases ?? []) {
+          if (matter.lawyer) lawyers.set(matter.lawyer.id, matter.lawyer)
         }
+        const list = [...lawyers.values()]
+        setTeam(list)
+        if (list.length > 0) setSelectedId(list[0].id)
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setTeamError(true)
+      })
       .finally(() => {
         if (!cancelled) setTeamLoading(false)
       })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [teamAttempt])
 
   // Fetch messages when partner changes
   useEffect(() => {
     if (!selectedId) return
     let cancelled = false
     setMsgsLoading(true)
+    setMsgError(false)
     api<{ messages: Message[] }>(`/api/messages?partnerId=${selectedId}`)
       .then(({ messages: m }) => {
         if (!cancelled) setMessages(m ?? [])
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setMsgError(true)
+      })
       .finally(() => {
         if (!cancelled) setMsgsLoading(false)
       })
     return () => {
       cancelled = true
     }
-  }, [selectedId])
+  }, [selectedId, msgAttempt])
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -153,6 +170,13 @@ export function MessagesSection() {
                   </div>
                 </li>
               ))
+            ) : teamError ? (
+              <li>
+                <LoadError
+                  title="Lawyers could not be loaded"
+                  onRetry={() => setTeamAttempt((n) => n + 1)}
+                />
+              </li>
             ) : filteredTeam.length === 0 ? (
               <li className="px-3 py-8 text-center text-xs text-muted-foreground">No lawyers found.</li>
             ) : (
@@ -242,6 +266,11 @@ export function MessagesSection() {
                     </div>
                   ))}
                 </div>
+              ) : msgError ? (
+                <LoadError
+                  title="Messages could not be loaded"
+                  onRetry={() => setMsgAttempt((n) => n + 1)}
+                />
               ) : messages.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center text-center">
                   <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">

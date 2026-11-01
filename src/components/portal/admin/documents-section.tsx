@@ -99,6 +99,7 @@ export function DocumentsSection() {
   const [typeFilter, setTypeFilter] = useState<string>('ALL')
   const [uploadOpen, setUploadOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
+  const [file, setFile] = useState<File | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
@@ -128,7 +129,7 @@ export function DocumentsSection() {
     let cancelled = false
     api<{ cases: Case[] }>('/api/cases')
       .then(({ cases }) => { if (!cancelled) setCases(cases) })
-      .catch(() => {})
+      .catch(() => { if (!cancelled) toast.error('Failed to load cases') })
     return () => { cancelled = true }
   }, [])
 
@@ -151,23 +152,23 @@ export function DocumentsSection() {
       toast.error('Please enter a document title')
       return
     }
+    if (!file) {
+      toast.error('Choose a file to upload')
+      return
+    }
+    const body = new FormData()
+    body.set('title', form.title)
+    body.set('type', form.type)
+    body.set('description', form.description)
+    if (form.caseId) body.set('caseId', form.caseId)
+    body.set('file', file)
     setSubmitting(true)
-    api('/api/documents', {
-      method: 'POST',
-      body: JSON.stringify({
-        title: form.title,
-        type: form.type,
-        fileName: form.fileName || form.title,
-        fileSize: 0,
-        fileUrl: `/documents/${form.fileName || form.title}`,
-        description: form.description || null,
-        caseId: form.caseId || null,
-      }),
-    })
+    api('/api/documents', { method: 'POST', body })
       .then(() => {
         toast.success('Document uploaded')
         setUploadOpen(false)
         setForm(emptyForm)
+        setFile(null)
         refetchDocs()
       })
       .catch(() => toast.error('Failed to upload document'))
@@ -290,8 +291,10 @@ export function DocumentsSection() {
                     </TableCell>
                     <TableCell className="pr-4 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Download">
-                          <Download className="h-3.5 w-3.5" />
+                        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                          <a href={`/api/documents/${d.id}/file`} aria-label="Download">
+                            <Download className="h-3.5 w-3.5" />
+                          </a>
                         </Button>
                         <Button
                           variant="ghost"
@@ -347,12 +350,12 @@ export function DocumentsSection() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="d-fname">File Name</Label>
+                  <Label htmlFor="d-file">File</Label>
                   <Input
-                    id="d-fname"
-                    value={form.fileName}
-                    onChange={(e) => setForm((f) => ({ ...f, fileName: e.target.value }))}
-                    placeholder="sale-deed.pdf"
+                    id="d-file"
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt"
+                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                   />
                 </div>
               </div>

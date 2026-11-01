@@ -19,6 +19,7 @@ node_modules
 
 # production
 /build
+/storage
 
 # misc
 .DS_Store
@@ -50,5 +51,16 @@ test
 prompt
 
 server.log
+
+# sqlite sidecars; the real database db/custom.db stays tracked
+*.db-journal
+*.db-wal
+*.db-shm
+
+# OS junk
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
 # Skills directory
 /skills/

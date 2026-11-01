@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/store/app-store'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -20,7 +21,8 @@ import {
 } from '@/components/ui/select'
 
 export function RegisterDialog() {
-  const { registerOpen, setRegisterOpen, setLoginOpen, setUser, setView } = useAppStore()
+  const router = useRouter()
+  const { registerOpen, setRegisterOpen, setLoginOpen, setUser } = useAppStore()
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -46,7 +48,7 @@ export function RegisterDialog() {
       setUser(user)
       toast.success('Account created! Welcome to Shaheen Law Associates.')
       setRegisterOpen(false)
-      setView('client-portal')
+      router.push('/portal')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Registration failed')
     } finally {

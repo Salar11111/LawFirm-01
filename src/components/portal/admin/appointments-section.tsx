@@ -111,7 +111,7 @@ export function AppointmentsSection() {
         setClients(c.clients)
         setTeam(t.team)
       })
-      .catch(() => {})
+      .catch(() => { if (!cancelled) toast.error('Failed to load clients and lawyers') })
     return () => { cancelled = true }
   }, [])
 

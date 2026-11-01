@@ -25,25 +25,32 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { INVOICE_STATUS_LABELS } from './labels'
+import { LoadError } from '@/components/portal/load-error'
 
 export function InvoicesSection() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let cancelled = false
+    setLoading(true)
+    setLoadError(false)
     api<{ invoices: Invoice[] }>('/api/invoices')
       .then(({ invoices: i }) => {
         if (!cancelled) setInvoices(i ?? [])
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setLoadError(true)
+      })
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [attempt])
 
   const pending = invoices.filter((i) => i.status === 'PENDING')
   const overdue = invoices.filter((i) => i.status === 'OVERDUE')
@@ -52,6 +59,15 @@ export function InvoicesSection() {
   const totalPaid = paid.reduce((sum, i) => sum + i.amount, 0)
   const outstandingCount = pending.length + overdue.length
   const paidPct = invoices.length > 0 ? Math.round((paid.length / invoices.length) * 100) : 0
+
+  if (loadError) {
+    return (
+      <LoadError
+        title="Invoices could not be loaded"
+        onRetry={() => setAttempt((n) => n + 1)}
+      />
+    )
+  }
 
   return (
     <div className="space-y-5">

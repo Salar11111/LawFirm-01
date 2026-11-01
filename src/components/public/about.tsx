@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useAppStore } from '@/store/app-store'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -35,7 +36,7 @@ const HIGHLIGHTS = [
 ]
 
 export function About() {
-  const { setView, openBooking } = useAppStore()
+  const { openBooking } = useAppStore()
 
   return (
     <section id="about" className="py-20 lg:py-28">
@@ -106,8 +107,8 @@ export function About() {
             </div>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button onClick={() => setView('about')} className="gap-2">
-                More About Us <ArrowRight className="h-4 w-4" />
+              <Button asChild className="gap-2">
+                <Link href="/about">More About Us <ArrowRight className="h-4 w-4" /></Link>
               </Button>
               <Button variant="outline" onClick={() => openBooking()}>Schedule a Meeting</Button>
             </div>

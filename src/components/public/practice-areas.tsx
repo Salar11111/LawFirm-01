@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/store/app-store'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -23,7 +25,8 @@ const ICON_NAMES: Record<string, string> = {
 }
 
 export function PracticeAreas() {
-  const { setView, openBooking, selectedPracticeArea, setSelectedPracticeArea } = useAppStore()
+  const router = useRouter()
+  const { openBooking, selectedPracticeArea, setSelectedPracticeArea } = useAppStore()
   const [areas, setAreas] = useState<PracticeArea[]>([])
   const [loading, setLoading] = useState(true)
   const [localSelected, setLocalSelected] = useState<PracticeArea | null>(null)
@@ -45,7 +48,7 @@ export function PracticeAreas() {
   }
 
   const renderIcon = (iconName: string) => {
-    const Icon = (Icons as Record<string, Icons.LucideIcon>)[ICON_NAMES[iconName] || 'Scale']
+    const Icon = (Icons as unknown as Record<string, Icons.LucideIcon>)[ICON_NAMES[iconName] || 'Scale']
     return Icon ? <Icon className="h-6 w-6" /> : <Icons.Scale className="h-6 w-6" />
   }
 
@@ -99,9 +102,11 @@ export function PracticeAreas() {
         )}
 
         <div className="mt-12 text-center">
-          <Button size="lg" variant="outline" onClick={() => setView('practice-areas')}>
-            View All Practice Areas
-            <ArrowRight className="ml-2 h-4 w-4" />
+          <Button size="lg" variant="outline" asChild>
+            <Link href="/practice-areas">
+              View All Practice Areas
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
           </Button>
         </div>
       </div>
@@ -143,7 +148,7 @@ export function PracticeAreas() {
                   <Button onClick={() => { closeDialog(); openBooking() }} className="flex-1">
                     Book Consultation
                   </Button>
-                  <Button variant="outline" onClick={() => { closeDialog(); setView('contact') }}>
+                  <Button variant="outline" onClick={() => { closeDialog(); router.push('/contact') }}>
                     Ask a Question
                   </Button>
                 </div>
@@ -168,7 +173,7 @@ export function PracticeAreasPage() {
   }, [])
 
   const renderIcon = (iconName: string) => {
-    const Icon = (Icons as Record<string, Icons.LucideIcon>)[ICON_NAMES[iconName] || 'Scale']
+    const Icon = (Icons as unknown as Record<string, Icons.LucideIcon>)[ICON_NAMES[iconName] || 'Scale']
     return Icon ? <Icon className="h-7 w-7" /> : <Icons.Scale className="h-7 w-7" />
   }
 

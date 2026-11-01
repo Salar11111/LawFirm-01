@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useAppStore } from '@/store/app-store'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -12,7 +13,7 @@ import { api, initials } from '@/lib/helpers'
 import type { User } from '@/lib/types'
 
 export function Team() {
-  const { setView, openBooking } = useAppStore()
+  const { openBooking } = useAppStore()
   const [team, setTeam] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -103,8 +104,8 @@ export function Team() {
         )}
 
         <div className="mt-12 text-center">
-          <Button size="lg" variant="outline" onClick={() => setView('team')}>
-            View Full Team
+          <Button size="lg" variant="outline" asChild>
+            <Link href="/team">View Full Team</Link>
           </Button>
         </div>
       </div>
