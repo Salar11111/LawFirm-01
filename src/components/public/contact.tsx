@@ -126,20 +126,5 @@ export function Contact() {
 }
 
 export function ContactPage() {
-  return (
-    <div className="container mx-auto px-4 sm:px-6 py-16 lg:py-24">
-      <div className="mx-auto max-w-2xl text-center">
-        <span className="text-sm font-semibold uppercase tracking-wider text-primary">Get In Touch</span>
-        <h1 className="mt-3 font-serif text-4xl font-bold tracking-tight text-foreground lg:text-5xl">
-          Contact Us
-        </h1>
-        <p className="mt-4 text-muted-foreground">
-          We&apos;re here to help. Reach out for a confidential consultation about your legal matter.
-        </p>
-      </div>
-      <div className="mt-12">
-        <Contact />
-      </div>
-    </div>
-  )
+  return <Contact />
 }

@@ -36,6 +36,7 @@ import type { Case, User } from '@/lib/types'
 import { SectionHeader } from './section-header'
 import { NewCaseDialog } from './new-case-dialog'
 import { CaseDetailDialog } from './case-detail-dialog'
+import { ListPager } from '@/components/portal/list-pager'
 
 interface CasesSectionProps {
   user: User
@@ -45,6 +46,8 @@ interface CasesSectionProps {
 
 export function CasesSection({ user, activeCaseId, onActiveCaseChange }: CasesSectionProps) {
   const [cases, setCases] = useState<Case[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [clients, setClients] = useState<User[]>([])
   const [team, setTeam] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -52,18 +55,19 @@ export function CasesSection({ user, activeCaseId, onActiveCaseChange }: CasesSe
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [newOpen, setNewOpen] = useState(false)
 
+  useEffect(() => { setPage(1) }, [search, statusFilter])
+
   const loadCases = useCallback(async () => {
-    const params = new URLSearchParams()
+    const params = new URLSearchParams({ page: String(page), pageSize: '10' })
     if (statusFilter !== 'ALL') params.set('status', statusFilter)
     if (search.trim()) params.set('search', search.trim())
-    const { cases } = await api<{ cases: Case[] }>(`/api/cases?${params.toString()}`)
-    return cases
-  }, [statusFilter, search])
+    return api<{ cases: Case[]; total: number }>(`/api/cases?${params.toString()}`)
+  }, [statusFilter, search, page])
 
   useEffect(() => {
     let cancelled = false
     loadCases()
-      .then((cases) => { if (!cancelled) setCases(cases) })
+      .then((result) => { if (!cancelled) { setCases(result.cases); setTotal(result.total) } })
       .catch(() => { if (!cancelled) toast.error('Failed to load cases') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
@@ -72,7 +76,7 @@ export function CasesSection({ user, activeCaseId, onActiveCaseChange }: CasesSe
   const refetchCases = useCallback(() => {
     setLoading(true)
     loadCases()
-      .then(setCases)
+      .then((result) => { setCases(result.cases); setTotal(result.total) })
       .catch(() => toast.error('Failed to load cases'))
       .finally(() => setLoading(false))
   }, [loadCases])
@@ -244,6 +248,7 @@ export function CasesSection({ user, activeCaseId, onActiveCaseChange }: CasesSe
               </TableBody>
             </Table>
           )}
+          <ListPager page={page} pageSize={10} total={total} onPage={setPage} />
         </Card>
       </div>
 

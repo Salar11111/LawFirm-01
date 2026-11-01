@@ -2,9 +2,16 @@ import { db } from "../src/lib/db";
 import { hashPassword } from "../src/lib/password";
 
 async function main() {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Refusing to seed a production database");
+  }
   console.log("Seeding database...");
 
   // Clean existing data
+  await db.notice.deleteMany();
+  await db.passwordReset.deleteMany();
+  await db.auditEvent.deleteMany();
+  await db.rateLimitBucket.deleteMany();
   await db.message.deleteMany();
   await db.invoice.deleteMany();
   await db.document.deleteMany();

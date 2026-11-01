@@ -82,13 +82,19 @@ export function MessagesSection() {
   // Poll for new messages every 8 seconds
   useEffect(() => {
     if (!activeClientId) return
+    let failed = false
     const interval = setInterval(() => {
       loadMessages(activeClientId)
         .then((msgs) => {
+          failed = false
           setMessages(msgs)
           setMessagesForId(activeClientId)
         })
-        .catch(() => {})
+        .catch(() => {
+          if (failed) return
+          failed = true
+          toast.error('Could not refresh messages')
+        })
     }, 8000)
     return () => clearInterval(interval)
   }, [activeClientId, loadMessages])

@@ -215,15 +215,16 @@ export async function api<T = unknown>(
 
 // Stats helper
 export async function getFirmStats() {
-  const [cases, clients, lawyers, reviews, pendingApts, wonCases] = await Promise.all([
+  const [cases, clients, lawyers, reviews, pendingApts, wonCases, closedCases, rating] = await Promise.all([
     db.case.count(),
     db.user.count({ where: { role: 'CLIENT' } }),
     db.user.count({ where: { role: { in: ['LAWYER', 'ADMIN'] } } }),
     db.review.count({ where: { approved: true } }),
     db.appointment.count({ where: { status: 'SCHEDULED' } }),
     db.case.count({ where: { status: 'WON' } }),
+    db.case.count({ where: { status: { in: ['CLOSED', 'WON', 'LOST'] } } }),
+    db.review.aggregate({ where: { approved: true }, _avg: { rating: true } }),
   ])
-  const avgRating = reviews > 0 ? 4.9 : 0
   return {
     cases,
     clients,
@@ -231,7 +232,7 @@ export async function getFirmStats() {
     reviews,
     pendingApts,
     wonCases,
-    avgRating,
-    successRate: cases > 0 ? Math.round((wonCases / Math.max(cases - 2, wonCases)) * 100) : 0,
+    avgRating: rating._avg.rating ?? 0,
+    successRate: closedCases > 0 ? Math.round((wonCases / closedCases) * 100) : 0,
   }
 }

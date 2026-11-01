@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { caseCreateSchema, caseUpdateSchema } from '@/lib/validations'
+import { notifyUser, recordAudit } from '@/lib/activity'
 import { getCases, createCase, updateCase, assertCaseAccess } from '@/lib/services'
 
 export const runtime = 'nodejs'
@@ -12,15 +13,19 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
   const search = searchParams.get('search')
+  const page = Number(searchParams.get('page') || '')
+  const pageSize = Number(searchParams.get('pageSize') || '')
 
-  const cases = await getCases({
+  const result = await getCases({
     userId: user.id,
     role: user.role,
     status: status || undefined,
     search: search || undefined,
+    page: page || undefined,
+    pageSize: pageSize || undefined,
   })
 
-  return NextResponse.json({ cases })
+  return NextResponse.json(result)
 }
 
 // POST a new case (admin/lawyer only)
@@ -79,6 +84,16 @@ export async function PATCH(request: NextRequest) {
     }
 
     const updated = await updateCase(id, result.data)
+    await recordAudit({
+      actorId: user.id,
+      action: 'case.updated',
+      entity: 'Case',
+      entityId: id,
+      summary: `${updated.caseNumber} was updated`,
+    })
+    if (result.data.status) {
+      await notifyUser(updated.clientId, 'Your matter was updated', `${updated.caseNumber} is now ${updated.status}`, '/portal/cases')
+    }
     return NextResponse.json({ case: updated })
   } catch {
     return NextResponse.json({ error: 'Failed to update case' }, { status: 500 })

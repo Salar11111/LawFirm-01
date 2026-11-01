@@ -112,7 +112,7 @@ export function RegisterDialog() {
                 required
                 value={form.password}
                 onChange={(e) => update('password', e.target.value)}
-                placeholder="Min. 6 characters"
+                placeholder="At least 8 characters, with a letter and a number"
                 className="pr-10"
               />
               <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">

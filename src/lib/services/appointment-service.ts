@@ -1,4 +1,5 @@
 ﻿import { db } from '@/lib/db'
+import { notifyUser, recordAudit } from '@/lib/activity'
 
 export interface CreateAppointmentInput {
   subject: string
@@ -107,6 +108,20 @@ export async function createAppointment(data: CreateAppointmentInput, userId: st
       lawyer: { select: { id: true, name: true, specialization: true } },
     },
   })
+
+  await recordAudit({
+    actorId: userId,
+    action: 'appointment.created',
+    entity: 'Appointment',
+    entityId: appointment.id,
+    summary: `${subject} booked with ${appointment.lawyer.name}`,
+  })
+  await notifyUser(
+    finalClientId,
+    'Consultation booked',
+    `${subject} on ${date} at ${time}`,
+    '/portal/appointments',
+  )
 
   return appointment
 }

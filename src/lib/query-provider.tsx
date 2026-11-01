@@ -29,10 +29,5 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
-// Hook to use the query client
-export const useQueryClient = () => {
-  // We'll import this from '@tanstack/react-query' in the helpers.ts
-  // But we can also re-export it here if needed
-  throw new Error('useQueryClient not implemented')
-}
+export { useQueryClient } from '@tanstack/react-query'
 

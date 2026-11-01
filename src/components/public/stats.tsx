@@ -23,10 +23,10 @@ export function Stats() {
   }, [])
 
   const items = [
-    { icon: Gavel, label: 'Cases Handled', value: stats ? `${formatCompact(stats.cases + 1240)}+` : '1,250+', suffix: '' },
-    { icon: Users, label: 'Happy Clients', value: stats ? `${formatCompact(stats.clients + 880)}+` : '900+', suffix: '' },
-    { icon: Award, label: 'Cases Won', value: stats ? `${stats.wonCases + 1180}+` : '1,180+', suffix: '' },
-    { icon: Star, label: 'Avg. Rating', value: stats ? stats.avgRating.toFixed(1) : '4.9', suffix: '/5' },
+    { icon: Gavel, label: 'Cases Handled', value: stats ? formatCompact(stats.cases) : '—', suffix: '' },
+    { icon: Users, label: 'Happy Clients', value: stats ? formatCompact(stats.clients) : '—', suffix: '' },
+    { icon: Award, label: 'Cases Won', value: stats ? String(stats.wonCases) : '—', suffix: '' },
+    { icon: Star, label: 'Avg. Rating', value: stats ? stats.avgRating.toFixed(1) : '—', suffix: stats ? '/5' : '' },
   ]
 
   return (

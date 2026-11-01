@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -28,6 +28,7 @@ import { toast } from 'sonner'
 import { api, formatDate, initials, statusBadgeClass } from '@/lib/helpers'
 import type { Case, User } from '@/lib/types'
 import { SectionHeader } from './section-header'
+import { ListPager } from '@/components/portal/list-pager'
 
 interface ClientRow {
   id: string
@@ -49,6 +50,8 @@ interface ClientsSectionProps {
 
 export function ClientsSection({ user, onOpenCase }: ClientsSectionProps) {
   const [clients, setClients] = useState<ClientRow[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [viewClient, setViewClient] = useState<ClientRow | null>(null)
@@ -56,17 +59,18 @@ export function ClientsSection({ user, onOpenCase }: ClientsSectionProps) {
   const [clientCasesForId, setClientCasesForId] = useState<string | null>(null)
   const [toggling, setToggling] = useState<string | null>(null)
 
+  useEffect(() => { setPage(1) }, [search])
+
   const loadClients = useCallback(async () => {
-    const params = new URLSearchParams()
+    const params = new URLSearchParams({ page: String(page), pageSize: '10' })
     if (search.trim()) params.set('search', search.trim())
-    const { clients } = await api<{ clients: ClientRow[] }>(`/api/clients?${params.toString()}`)
-    return clients
-  }, [search])
+    return api<{ clients: ClientRow[]; total: number }>(`/api/clients?${params.toString()}`)
+  }, [search, page])
 
   useEffect(() => {
     let cancelled = false
     loadClients()
-      .then((clients) => { if (!cancelled) setClients(clients) })
+      .then((result) => { if (!cancelled) { setClients(result.clients); setTotal(result.total) } })
       .catch(() => { if (!cancelled) toast.error('Failed to load clients') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
@@ -75,7 +79,7 @@ export function ClientsSection({ user, onOpenCase }: ClientsSectionProps) {
   const refetchClients = useCallback(() => {
     setLoading(true)
     loadClients()
-      .then(setClients)
+      .then((result) => { setClients(result.clients); setTotal(result.total) })
       .catch(() => toast.error('Failed to load clients'))
       .finally(() => setLoading(false))
   }, [loadClients])
@@ -111,13 +115,12 @@ export function ClientsSection({ user, onOpenCase }: ClientsSectionProps) {
   }
 
   const isAdmin = user.role === 'ADMIN'
-  const activeCount = useMemo(() => clients.filter((c) => c.active).length, [clients])
 
   return (
     <div>
       <SectionHeader
         title="Clients"
-        subtitle={`${clients.length} registered · ${activeCount} active`}
+        subtitle={`${total} registered clients`}
         icon={<Users className="h-5 w-5" />}
         search={search}
         onSearchChange={setSearch}
@@ -217,6 +220,7 @@ export function ClientsSection({ user, onOpenCase }: ClientsSectionProps) {
               </TableBody>
             </Table>
           )}
+          <ListPager page={page} pageSize={10} total={total} onPage={setPage} />
         </Card>
       </div>
 

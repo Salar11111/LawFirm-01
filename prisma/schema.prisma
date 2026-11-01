@@ -25,6 +25,7 @@ model User {
   experience Int?
   barLicense String?
   active    Boolean  @default(true)
+  sessionVersion Int     @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -38,6 +39,8 @@ model User {
   clientInvoices  Invoice[]
   reviews         Review[]
   contacts        Contact[]
+  passwordResets  PasswordReset[]
+  notices         Notice[]
 }
 
 model Case {
@@ -159,6 +162,43 @@ model Contact {
   handledBy String?
   handler   User?    @relation(fields: [handledBy], references: [id])
   createdAt DateTime @default(now())
+}
+
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model AuditEvent {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String?
+  summary   String
+  createdAt DateTime @default(now())
+}
+
+model Notice {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  href      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model RateLimitBucket {
+  key     String   @id
+  count   Int
+  resetAt DateTime
 }
 
 model PracticeArea {

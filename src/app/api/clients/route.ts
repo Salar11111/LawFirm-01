@@ -13,6 +13,8 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url)
   const search = searchParams.get('search')
+  const page = Number(searchParams.get('page') || '')
+  const pageSize = Number(searchParams.get('pageSize') || '')
 
   const clients = await getUsers({ role: 'CLIENT' })
 
@@ -27,7 +29,17 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  return NextResponse.json({ clients: filtered })
+  if (page && pageSize) {
+    const start = (page - 1) * pageSize
+    return NextResponse.json({
+      clients: filtered.slice(start, start + pageSize),
+      total: filtered.length,
+      page,
+      pageSize,
+    })
+  }
+
+  return NextResponse.json({ clients: filtered, total: filtered.length })
 }
 
 // PATCH toggle active status

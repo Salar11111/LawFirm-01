@@ -2,6 +2,7 @@
 import { getCurrentUser } from '@/lib/auth'
 import { verifyCsrfToken } from '@/lib/csrf'
 import { contactStatusSchema } from '@/lib/validations'
+import { contactRateLimiter, rateLimit } from '@/lib/rate-limit'
 import { getContacts, createContact, updateContact } from '@/lib/services'
 
 export const runtime = 'nodejs'
@@ -16,6 +17,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const limited = await rateLimit(request, contactRateLimiter, 'contact')
+  if (limited) return limited
   if (!verifyCsrfToken(request)) {
     return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 })
   }

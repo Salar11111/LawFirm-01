@@ -27,6 +27,17 @@ export function isAllowedUpload(fileName: string) {
   return ALLOWED_EXTENSIONS.has(extensionOf(fileName))
 }
 
+export function matchesDeclaredType(fileName: string, bytes: Buffer) {
+  const ext = extensionOf(fileName)
+  if (ext === 'pdf') return bytes.subarray(0, 5).toString('utf8') === '%PDF-'
+  if (ext === 'png') return bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+  if (ext === 'jpg' || ext === 'jpeg') return bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
+  if (ext === 'docx') return bytes.length > 1 && bytes[0] === 0x50 && bytes[1] === 0x4b
+  if (ext === 'doc') return bytes.length > 4 && bytes.subarray(0, 4).equals(Buffer.from([0xd0, 0xcf, 0x11, 0xe0]))
+  if (ext === 'txt') return !bytes.subarray(0, Math.min(bytes.length, 1024)).includes(0)
+  return false
+}
+
 export function contentTypeFor(fileName: string) {
   return MIME_BY_EXTENSION[extensionOf(fileName)] || 'application/octet-stream'
 }

@@ -1,5 +1,6 @@
 ﻿import { db } from '@/lib/db'
 import { invoiceAmount } from '@/lib/access'
+import { notifyUser, recordAudit } from '@/lib/activity'
 
 export interface CreateInvoiceInput {
   invoiceNumber?: string
@@ -61,6 +62,15 @@ export async function createInvoice(data: CreateInvoiceInput, actorId: string) {
       statusChangedBy: actorId,
     },
   })
+
+  await recordAudit({
+    actorId,
+    action: 'invoice.created',
+    entity: 'Invoice',
+    entityId: invoice.id,
+    summary: `${finalInvoiceNumber} issued`,
+  })
+  await notifyUser(clientId, 'A new invoice is ready', `${finalInvoiceNumber} for PKR ${total}`, '/portal/invoices')
 
   return invoice
 }

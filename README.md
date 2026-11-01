@@ -82,12 +82,12 @@ Install dependencies, generate the Prisma client, and start the app:
 ```bash
 bun install
 bunx prisma generate
-bunx next dev -p 3000
+bun run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The `dev`, `build`, and `start` scripts in `package.json` use Unix shell syntax (`NODE_OPTIONS=…`, `tee`, `cp`). On Windows PowerShell, run the commands above directly. In Git Bash, macOS, or Linux, `bun run dev` works as written.
+`bun run dev` starts the app on port 3000 in PowerShell, Git Bash, macOS, and Linux.
 
 ### Rebuild the demo data
 
@@ -100,7 +100,7 @@ bunx tsx --env-file=.env prisma/seed.ts
 
 ## Demo accounts
 
-Every password below comes from the seed. Use them only on this demo.
+Every password below comes from the seed. New passwords need at least 8 characters, including a letter and a number. Change these accounts before any public deployment. Signing out revokes that account’s other sessions. Forgotten passwords can be reset from the sign-in dialog. Without `RESEND_API_KEY` and `MAIL_FROM`, the reset link is shown in the demo instead of emailed.
 
 | Role | Name | Email | Password |
 | --- | --- | --- | --- |
@@ -132,13 +132,13 @@ Advocates only see matters assigned to them. Clients only see their own. Adminis
 
 | Command | What it does |
 | --- | --- |
-| `bun run dev` | Development server on port 3000 (Unix shells) |
-| `bun run test` | Access, CSRF, and rate-limit tests in `tests/access.test.ts` |
+| `bun run dev` | Development server on port 3000 |
+| `bun run test` | Access, password, session, and upload tests |
 | `bun run lint` | ESLint |
 | `bun run db:generate` | `prisma generate` |
 | `bun run db:push` | Push the schema to SQLite |
-| `bun run build` | Production build, then copy static assets into the standalone output (Unix shells) |
-| `bun run start` | Run the standalone server (Unix shells) |
+| `bun run build` | Production build, then copy static assets into the standalone output |
+| `bun run start` | Run the standalone server |
 
 ## Project layout
 
@@ -159,4 +159,4 @@ docs/screenshots      Images in this README
 
 ## Notes
 
-This is a demo of one chambers, Shaheen Law Associates, with invented matters and clients. It runs on SQLite. Roles are stored as `ADMIN`, `LAWYER`, and `CLIENT`. A production deployment would want Postgres, a real `AUTH_SECRET`, HTTPS, and a review of the rate limits, which are in-memory and reset when the process restarts.
+This is a demo of one chambers, Shaheen Law Associates, with invented matters and clients. It runs on SQLite, and roles are stored as `ADMIN`, `LAWYER`, and `CLIENT`. Public figures on the home page are the counts in the database. Hearings, invoices, and messages also create an in-app notice, and an email when `RESEND_API_KEY` is set. Login and contact limits are stored in the database so they survive a restart of this single server. A production deployment would want Postgres, a real `AUTH_SECRET`, HTTPS, and a review of those limits before running more than one server.

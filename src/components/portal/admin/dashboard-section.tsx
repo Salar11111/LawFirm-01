@@ -42,6 +42,7 @@ import {
 import type { Case, Invoice } from '@/lib/types'
 import { SectionHeader } from './section-header'
 import { LoadError } from '@/components/portal/load-error'
+import { AuditFeed, NoticeList } from '@/components/portal/notice-list'
 
 interface FirmStats {
   cases: number
@@ -222,6 +223,8 @@ export function DashboardSection({ onOpenCase }: DashboardProps) {
           />
         ) : (
         <>
+        <NoticeList />
+        <AuditFeed />
         {/* KPI cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <KpiCard icon={Briefcase} label="Total Cases" value={String(stats?.cases ?? 0)} loading={loading} />

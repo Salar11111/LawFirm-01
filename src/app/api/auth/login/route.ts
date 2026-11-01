@@ -4,12 +4,13 @@ import { verifyPassword } from '@/lib/password'
 import { loginSchema } from '@/lib/validations'
 import { verifyCsrfToken } from '@/lib/csrf'
 import { loginRateLimiter, rateLimit } from '@/lib/rate-limit'
+import { decryptField } from '@/lib/field-crypto'
 import { getUserByEmail } from '@/lib/services'
 
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
-  const limited = rateLimit(request, loginRateLimiter)
+  const limited = await rateLimit(request, loginRateLimiter, 'login')
   if (limited) return limited
   if (!verifyCsrfToken(request)) {
     return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 })
@@ -29,9 +30,9 @@ export async function POST(request: NextRequest) {
     if (!valid) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
-    const token = createSession(user.id)
-    const { password: _pw, ...safeUser } = user
-    const response = NextResponse.json({ user: safeUser })
+    const token = createSession(user.id, Date.now(), user.sessionVersion)
+    const { password: _pw, sessionVersion: _version, cnic, ...safeUser } = user
+    const response = NextResponse.json({ user: { ...safeUser, cnic: decryptField(cnic) } })
     response.cookies.set('session', token, sessionCookieOptions())
     return response
   } catch {

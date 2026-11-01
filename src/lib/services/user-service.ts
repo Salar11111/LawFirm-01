@@ -1,5 +1,15 @@
 ﻿import { db } from '@/lib/db'
+import { decryptField, encryptField, isEncryptedField } from '@/lib/field-crypto'
 import { hashPassword } from '@/lib/password'
+
+function presentUser<T extends { cnic?: string | null }>(user: T) {
+  return { ...user, cnic: decryptField(user.cnic) }
+}
+
+async function sealCnic(id: string, cnic: string | null | undefined) {
+  if (!cnic || isEncryptedField(cnic)) return
+  await db.user.update({ where: { id }, data: { cnic: encryptField(cnic) } })
+}
 
 export interface CreateUserInput {
   name: string
@@ -56,7 +66,8 @@ export async function getUsers(filters?: { role?: string }) {
     orderBy: { createdAt: 'desc' },
   })
 
-  return users
+  await Promise.all(users.map((user) => sealCnic(user.id, user.cnic)))
+  return users.map(presentUser)
 }
 
 export async function getUserById(id: string) {
@@ -81,7 +92,9 @@ export async function getUserById(id: string) {
     },
   })
 
-  return user
+  if (!user) return user
+  await sealCnic(user.id, user.cnic)
+  return presentUser(user)
 }
 
 export async function getUserByEmail(email: string) {
@@ -104,24 +117,26 @@ export async function createUser(data: CreateUserInput) {
       password: hashed,
       role: role || 'CLIENT',
       phone: phone || null,
-      cnic: cnic || null,
+      cnic: encryptField(cnic),
       city: city || null,
       address: address || null,
     },
   })
 
-  const { password: _password, ...safeUser } = user
-  return safeUser
+  const { password: _password, sessionVersion: _sessionVersion, ...safeUser } = user
+  return presentUser(safeUser)
 }
 
 export async function updateUser(id: string, data: UpdateUserInput) {
+  const next = { ...data }
+  if (typeof next.cnic === 'string') next.cnic = encryptField(next.cnic)
   const user = await db.user.update({
     where: { id },
-    data,
+    data: next,
   })
 
-  const { password: _password, ...safeUser } = user
-  return safeUser
+  const { password: _password, sessionVersion: _sessionVersion, ...safeUser } = user
+  return presentUser(safeUser)
 }
 
 export async function deleteUser(id: string) {

@@ -4,12 +4,14 @@ import { getCurrentUser } from '@/lib/auth'
 import { documentSchema } from '@/lib/validations'
 import { verifyCsrfToken } from '@/lib/csrf'
 import { canReadDocument } from '@/lib/access'
+import { recordAudit } from '@/lib/activity'
 import { assertCaseAccess, getDocuments, createDocument, deleteDocument } from '@/lib/services'
 import { db } from '@/lib/db'
 import {
   MAX_UPLOAD_BYTES,
   contentTypeFor,
   isAllowedUpload,
+  matchesDeclaredType,
   removeUpload,
   safeStoredName,
   saveUpload,
@@ -79,6 +81,13 @@ export async function POST(request: NextRequest) {
       caseId,
       uploadedBy: user.id,
     })
+    await recordAudit({
+      actorId: user.id,
+      action: 'document.created',
+      entity: 'Document',
+      entityId: document.id,
+      summary: `${document.title} added`,
+    })
     return NextResponse.json({ document })
   } catch {
     return NextResponse.json({ error: 'Failed to upload document' }, { status: 500 })
@@ -119,6 +128,9 @@ async function uploadFile(request: NextRequest, userId: string, role: string) {
     const id = randomUUID()
     const storedName = safeStoredName(id, file.name)
     const bytes = Buffer.from(await file.arrayBuffer())
+    if (!matchesDeclaredType(file.name, bytes)) {
+      return NextResponse.json({ error: 'File contents do not match its type' }, { status: 400 })
+    }
     await saveUpload(storedName, bytes)
     const document = await db.document.create({
       data: {
@@ -132,6 +144,13 @@ async function uploadFile(request: NextRequest, userId: string, role: string) {
         caseId: parsed.data.caseId || null,
         uploadedBy: userId,
       },
+    })
+    await recordAudit({
+      actorId: userId,
+      action: 'document.uploaded',
+      entity: 'Document',
+      entityId: document.id,
+      summary: `${document.title} uploaded`,
     })
     return NextResponse.json({ document })
   } catch {

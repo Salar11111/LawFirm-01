@@ -8,7 +8,7 @@ import { getUserByEmail, createUser } from '@/lib/services'
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
-  const limited = rateLimit(request, registerRateLimiter)
+  const limited = await rateLimit(request, registerRateLimiter, 'register')
   if (limited) return limited
   if (!verifyCsrfToken(request)) {
     return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 })
@@ -28,12 +28,13 @@ export async function POST(request: NextRequest) {
       name,
       email,
       password,
+      role: 'CLIENT',
       phone,
       cnic,
       city,
       address,
     })
-    const token = createSession(user.id)
+    const token = createSession(user.id, Date.now(), 0)
     const response = NextResponse.json({ user })
     response.cookies.set('session', token, sessionCookieOptions())
     return response

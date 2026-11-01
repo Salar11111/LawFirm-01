@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils'
 import { UPDATE_TYPE_LABELS, CASE_STATUS_LABELS, APPOINTMENT_TYPE_LABELS } from './labels'
 import type { PortalSection } from './portal-sidebar'
 import { LoadError } from '@/components/portal/load-error'
+import { NoticeList } from '@/components/portal/notice-list'
 
 const ACTIVE_STATUSES = ['PENDING', 'ACTIVE', 'HEARING', 'ADJOURNED']
 
@@ -143,6 +144,8 @@ export function OverviewSection({ onNavigate }: { onNavigate: (s: PortalSection)
           </div>
         </div>
       </div>
+
+      <NoticeList />
 
       {loadError && !loading ? (
         <LoadError

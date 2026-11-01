@@ -33,12 +33,15 @@ import { CASE_STATUS_LABELS, CASE_STATUS_LABELS as CS, PRIORITY_LABELS } from '.
 import { CASE_STATUSES } from '@/lib/helpers'
 import { CaseDetailDialog } from './case-detail-dialog'
 import { LoadError } from '@/components/portal/load-error'
+import { ListPager } from '@/components/portal/list-pager'
 
 export function CasesSection() {
   const user = useAppStore((s) => s.user)
   const openBooking = useAppStore((s) => s.openBooking)
 
   const [cases, setCases] = useState<Case[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [attempt, setAttempt] = useState(0)
@@ -47,13 +50,21 @@ export function CasesSection() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
 
+  useEffect(() => { setPage(1) }, [search, statusFilter])
+
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     setLoadError(false)
-    api<{ cases: Case[] }>('/api/cases')
-      .then(({ cases: c }) => {
-        if (!cancelled) setCases(c ?? [])
+    const params = new URLSearchParams({ page: String(page), pageSize: '10' })
+    if (statusFilter !== 'ALL') params.set('status', statusFilter)
+    if (search.trim()) params.set('search', search.trim())
+    api<{ cases: Case[]; total: number }>(`/api/cases?${params.toString()}`)
+      .then(({ cases: c, total: count }) => {
+        if (!cancelled) {
+          setCases(c ?? [])
+          setTotal(count ?? 0)
+        }
       })
       .catch(() => {
         if (!cancelled) setLoadError(true)
@@ -64,21 +75,7 @@ export function CasesSection() {
     return () => {
       cancelled = true
     }
-  }, [attempt])
-
-  const filtered = cases.filter((c) => {
-    if (statusFilter !== 'ALL' && c.status !== statusFilter) return false
-    if (search) {
-      const q = search.toLowerCase()
-      return (
-        c.title.toLowerCase().includes(q) ||
-        c.caseNumber.toLowerCase().includes(q) ||
-        c.court.toLowerCase().includes(q) ||
-        c.practiceArea.toLowerCase().includes(q)
-      )
-    }
-    return true
-  })
+  }, [attempt, page, search, statusFilter])
 
   const openCase = (id: string) => {
     setSelectedId(id)
@@ -122,7 +119,7 @@ export function CasesSection() {
 
       {/* Results count */}
       <p className="text-xs text-muted-foreground">
-        {loading ? 'Loading…' : `${filtered.length} case${filtered.length !== 1 ? 's' : ''} found`}
+        {loading ? 'Loading…' : `${total} case${total !== 1 ? 's' : ''} found`}
       </p>
 
       {/* Grid */}
@@ -141,7 +138,7 @@ export function CasesSection() {
             </Card>
           ))}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : cases.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center px-6 py-16 text-center">
             <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
@@ -163,8 +160,9 @@ export function CasesSection() {
           </CardContent>
         </Card>
       ) : (
+        <>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {filtered.map((c) => {
+          {cases.map((c) => {
             const lawyer = c.lawyer as User | undefined
             return (
               <Card
@@ -245,6 +243,8 @@ export function CasesSection() {
             )
           })}
         </div>
+        <ListPager page={page} pageSize={10} total={total} onPage={setPage} />
+        </>
       )}
 
       <CaseDetailDialog

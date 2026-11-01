@@ -1,5 +1,7 @@
 ﻿import { db } from '@/lib/db'
 import { canAccessMatter } from '@/lib/access'
+import { notifyUser, recordAudit } from '@/lib/activity'
+import { decryptField } from '@/lib/field-crypto'
 
 export interface CreateCaseInput {
   title: string
@@ -31,10 +33,12 @@ export interface CaseFilters {
   role: string
   status?: string
   search?: string
+  page?: number
+  pageSize?: number
 }
 
 export async function getCases(filters: CaseFilters) {
-  const { userId, role, status, search } = filters
+  const { userId, role, status, search, page, pageSize } = filters
 
   const where: Record<string, unknown> = {}
 
@@ -51,20 +55,26 @@ export async function getCases(filters: CaseFilters) {
       { title: { contains: search } },
       { caseNumber: { contains: search } },
       { court: { contains: search } },
+      { practiceArea: { contains: search } },
     ]
   }
 
-  const cases = await db.case.findMany({
-    where,
-    include: {
-      client: { select: { id: true, name: true, email: true, phone: true, city: true } },
-      lawyer: { select: { id: true, name: true, specialization: true, avatar: true } },
-      _count: { select: { documents: true, updates: true } },
-    },
-    orderBy: { updatedAt: 'desc' },
-  })
+  const paged = page && pageSize
+  const [cases, total] = await Promise.all([
+    db.case.findMany({
+      where,
+      include: {
+        client: { select: { id: true, name: true, email: true, phone: true, city: true } },
+        lawyer: { select: { id: true, name: true, specialization: true, avatar: true } },
+        _count: { select: { documents: true, updates: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+      ...(paged ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+    }),
+    db.case.count({ where }),
+  ])
 
-  return cases
+  return { cases, total, page: paged ? page : 1, pageSize: paged ? pageSize : total }
 }
 
 export async function getCaseById(id: string, userId: string, role: string) {
@@ -87,6 +97,7 @@ export async function getCaseById(id: string, userId: string, role: string) {
     return { case: null, forbidden: true }
   }
 
+  if (caseData.client) caseData.client.cnic = decryptField(caseData.client.cnic)
   return { case: caseData, forbidden: false }
 }
 
@@ -137,6 +148,15 @@ export async function createCase(data: CreateCaseInput, userId: string, role = '
       createdBy: userId,
     },
   })
+
+  await recordAudit({
+    actorId: userId,
+    action: 'case.created',
+    entity: 'Case',
+    entityId: newCase.id,
+    summary: `${caseNumber} opened for ${newCase.client.name}`,
+  })
+  await notifyUser(clientId, 'A new matter was opened', `${caseNumber}: ${title}`, '/portal/cases')
 
   return newCase
 }

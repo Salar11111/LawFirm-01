@@ -1,4 +1,5 @@
 ﻿import { db } from '@/lib/db'
+import { notifyUser } from '@/lib/activity'
 
 export interface CreateMessageInput {
   receiverId: string
@@ -64,6 +65,9 @@ export async function createMessage(data: CreateMessageInput, senderId: string) 
       receiver: { select: { id: true, name: true, role: true, avatar: true } },
     },
   })
+
+  const href = message.receiver.role === 'CLIENT' ? '/portal/messages' : '/dashboard/messages'
+  await notifyUser(receiverId, `Message from ${message.sender.name}`, content.slice(0, 180), href)
 
   return message
 }

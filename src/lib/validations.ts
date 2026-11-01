@@ -10,15 +10,26 @@ import {
   PRIORITIES,
 } from '@/lib/enums'
 
+export const passwordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .regex(/[A-Za-z]/, 'Password must include a letter')
+  .regex(/[0-9]/, 'Password must include a number')
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(20),
+  password: passwordSchema,
+})
+
 export const loginSchema = z.object({
   email: z.string().email('Invalid email format'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: passwordSchema,
 })
 
 export const registerSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email format'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: passwordSchema,
   phone: z.string().optional(),
   cnic: z.string().optional(),
   city: z.string().optional(),
