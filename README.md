@@ -1,70 +1,58 @@
-# Shaheen Law Associates
+<div align="center">
 
-A practice-management demo for a Pakistani law firm. The public site introduces the chambers. Clients follow their own matters in a portal. Partners and advocates run the firm from a staff dashboard.
+# ⚖️ Shaheen Law Associates
 
-The screenshots below are the seeded demo, captured at 1440×900.
+**A practice-management demo for a Pakistani law firm — public site, client portal and staff dashboard in one app.**
 
-## Screenshots
+[![CI](https://github.com/Salar11111/LawFirm-01/actions/workflows/ci.yml/badge.svg)](https://github.com/Salar11111/LawFirm-01/actions/workflows/ci.yml)
+![Next.js](https://img.shields.io/badge/Next.js-16-111827?logo=next.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-6-2D3748?logo=prisma&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
+![Tailwind](https://img.shields.io/badge/Tailwind-4-38BDF8?logo=tailwindcss&logoColor=white)
 
-### Public site
+</div>
 
-Home. Consultation booking, client login, and the chambers in Karachi, Lahore, and Islamabad.
+---
 
-![Home page, with the headline Justice, delivered with honour](docs/screenshots/home.png)
+## ✨ Why Shaheen?
 
-Practice areas, from banking and constitutional work through criminal defence.
+Most law-firm sites stop at a brochure. This one carries the whole client journey: a visitor reads about the chambers and books a consultation, a client signs in to follow their own matters and invoices, and the staff work from a dashboard that tracks cases, hearings, revenue and workload by practice area.
 
-![Practice areas page, showing four practice cards](docs/screenshots/practice-areas.png)
+The demo is deliberately scoped to one firm with invented matters and clients. Roles are simple — `ADMIN`, `LAWYER` and `CLIENT` — and enforced in the right places: advocates only see assigned matters, clients only see their own, and administrators see everything. It runs on SQLite with a seeded database checked into the repo, so it starts in seconds.
 
-The firm’s story, from chambers on I.I. Chundrigar Road in 1998.
+### 🧩 What's inside
 
-![About page, telling the firm’s story](docs/screenshots/about.png)
+- 🌐 **Public site** — practice areas, the firm's story, the advocates, contact and consultation booking.
+- 🔐 **Client portal** (`/portal`) — clients see only their own cases, appointments, documents, invoices and messages.
+- 📊 **Staff dashboard** (`/dashboard`) — firm-wide cases, revenue, hearings and workload, with charts for status, practice mix and collected revenue.
+- 💬 **Messages and notices** — hearings, invoices and messages create an in-app notice, and an email when `RESEND_API_KEY` is set.
+- 🔑 **Signed sessions** — HMAC-signed cookie, scrypt password hashes and a double-submit CSRF token.
+- 📎 **Private uploads** — files go to `storage/uploads` and download through an authenticated route that checks role and matter.
 
-The advocates, with practice, experience, and bar licence.
+Sign-in is a dialog: clients land on `/portal`, staff on `/dashboard`.
 
-![Team page, with four advocate profiles](docs/screenshots/team.png)
+---
 
-Confidential enquiries. The first consultation is offered on the form.
+## 📸 Screenshots
 
-![Contact page, with the office details and the message form](docs/screenshots/contact.png)
+The seeded demo, captured at 1440×900.
 
-### Client portal
+| Home | Practice areas | About |
+| --- | --- | --- |
+| ![Home page](docs/screenshots/home.png) | ![Practice areas](docs/screenshots/practice-areas.png) | ![About page](docs/screenshots/about.png) |
 
-Ahmed Hassan’s overview: open matters, hearings, invoices, and recent rulings.
+| Team | Contact | Client portal |
+| --- | --- | --- |
+| ![Team page](docs/screenshots/team.png) | ![Contact page](docs/screenshots/contact.png) | ![Client portal overview](docs/screenshots/portal.png) |
 
-![Client portal overview for Ahmed Hassan](docs/screenshots/portal.png)
+| Client cases | Staff dashboard |
+| --- | --- |
+| ![Client cases](docs/screenshots/portal-cases.png) | ![Staff dashboard](docs/screenshots/dashboard.png) |
 
-His two matters, including a banking recovery and a bail application.
+---
 
-![Client cases, showing two of Ahmed Hassan’s matters](docs/screenshots/portal-cases.png)
-
-### Staff dashboard
-
-Firm-wide cases, revenue, hearings, and workload by practice.
-
-![Staff dashboard, with case totals, revenue, and charts](docs/screenshots/dashboard.png)
-
-## What you can do
-
-**Public site.** Read the practice areas, the firm’s story, and the team. Book a consultation or send a confidential enquiry. Sign in from the header.
-
-**Client portal** (`/portal`). A client sees only their own cases, appointments, documents, invoices, and messages, and can update their profile.
-
-**Staff dashboard** (`/dashboard`). Administrators and assigned advocates manage cases, clients, appointments, documents, invoices, messages, enquiries, and the legal team. The home view charts status, practice mix, and collected revenue.
-
-Sign-in is a dialog. After a successful login, clients land on `/portal` and staff land on `/dashboard`.
-
-## Stack
-
-- [Next.js 16](https://nextjs.org/) App Router and React 19
-- Tailwind CSS 4 and shadcn/ui
-- Prisma 6 with SQLite (`db/custom.db`)
-- Zod validation, Zustand for client session state
-- HMAC-signed session cookie, scrypt password hashes, and a double-submit CSRF token
-
-Uploaded files are written to `storage/uploads` (gitignored) and are not served as public static files. Download goes through an authenticated route that checks the caller’s role and matter.
-
-## Getting started
+## 🚀 Quick start
 
 You need [Bun](https://bun.sh/) (or Node.js 20+) and a checkout of this repository. The seeded database is already in `db/custom.db`.
 
@@ -75,9 +63,7 @@ DATABASE_URL="file:../db/custom.db"
 AUTH_SECRET="replace-with-a-long-random-string"
 ```
 
-`DATABASE_URL` is resolved from the `prisma/` directory, so that path points at `db/custom.db`. `AUTH_SECRET` signs session cookies. It is required in production. In development, an unset secret falls back to a built-in value, so set one if you want sessions to survive a change of environment.
-
-Install dependencies, generate the Prisma client, and start the app:
+`DATABASE_URL` resolves from `prisma/`, so that path points at `db/custom.db`. `AUTH_SECRET` signs session cookies and is required in production (development falls back to a built-in value).
 
 ```bash
 bun install
@@ -85,22 +71,20 @@ bunx prisma generate
 bun run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
-
-`bun run dev` starts the app on port 3000 in PowerShell, Git Bash, macOS, and Linux.
+Open [http://localhost:3000](http://localhost:3000). `bun run dev` starts on port 3000 in PowerShell, Git Bash, macOS and Linux.
 
 ### Rebuild the demo data
 
-This wipes and rewrites the SQLite file, then loads the firm, matters, invoices, and accounts from `prisma/seed.ts`.
+This wipes and rewrites the SQLite file, then reloads the firm, matters, invoices and accounts from `prisma/seed.ts`.
 
 ```bash
 bunx prisma db push
 bunx tsx --env-file=.env prisma/seed.ts
 ```
 
-## Demo accounts
+### Demo accounts
 
-Every password below comes from the seed. New passwords need at least 8 characters, including a letter and a number. Change these accounts before any public deployment. Signing out revokes that account’s other sessions. Forgotten passwords can be reset from the sign-in dialog. Without `RESEND_API_KEY` and `MAIL_FROM`, the reset link is shown in the demo instead of emailed.
+Every password comes from the seed. New passwords need at least eight characters, including a letter and a number. Change these accounts before any public deployment. Signing out revokes that account's other sessions; without `RESEND_API_KEY` and `MAIL_FROM` the reset link is shown in the demo instead of emailed.
 
 | Role | Name | Email | Password |
 | --- | --- | --- | --- |
@@ -112,43 +96,42 @@ Every password below comes from the seed. New passwords need at least 8 characte
 | Client | Sana Tariq | `sana.client@email.com` | `client123` |
 | Client | Usman Sheikh | `usman.client@email.com` | `client123` |
 
-Advocates only see matters assigned to them. Clients only see their own. Administrators see the whole firm.
+---
 
-## Routes
+## 🧱 Stack
+
+| Layer | Choice |
+| --- | --- |
+| Framework | Next.js 16 App Router, React 19 |
+| Styling | Tailwind CSS 4, shadcn/ui |
+| Database | Prisma 6 + SQLite (`db/custom.db`) |
+| Validation / state | Zod, Zustand |
+| Auth | HMAC-signed cookie, scrypt hashes, double-submit CSRF |
+| Tests | Node test runner |
+
+---
+
+## 🗺 Routes
 
 | URL | Who |
 | --- | --- |
-| `/` | Public home |
-| `/practice-areas` | Public |
-| `/about` | Public |
-| `/team` | Public |
-| `/contact` | Public |
+| `/`, `/practice-areas`, `/about`, `/team`, `/contact` | Public |
 | `/portal` and `/portal/cases`, `/appointments`, `/documents`, `/invoices`, `/messages`, `/profile` | Clients |
 | `/dashboard` and `/dashboard/cases`, `/clients`, `/appointments`, `/documents`, `/invoices`, `/messages`, `/inquiries`, `/team` | Administrators and advocates |
 
-`/api/practice-areas`, `/api/team`, `/api/reviews`, `/api/stats`, `/api/csrf`, `/api/auth/*`, and `POST /api/contact` are public. Every other API route requires a session.
+`/api/practice-areas`, `/api/team`, `/api/reviews`, `/api/stats`, `/api/csrf`, `/api/auth/*` and `POST /api/contact` are public. Every other API route requires a session.
 
-## Scripts
+---
 
-| Command | What it does |
-| --- | --- |
-| `bun run dev` | Development server on port 3000 |
-| `bun run test` | Access, password, session, and upload tests |
-| `bun run lint` | ESLint |
-| `bun run db:generate` | `prisma generate` |
-| `bun run db:push` | Push the schema to SQLite |
-| `bun run build` | Production build, then copy static assets into the standalone output |
-| `bun run start` | Run the standalone server |
+## 🗂 Project layout
 
-## Project layout
-
-```
+```text
 src/app/(site)        Public pages
 src/app/portal        Client portal
 src/app/dashboard     Staff dashboard
 src/app/api           Route handlers
-src/components        Public pages, both portals, and shared UI
-src/lib               Auth, database, validation, and services
+src/components        Public pages, both portals, shared UI
+src/lib               Auth, database, validation, services
 prisma/schema.prisma  SQLite schema
 prisma/seed.ts        Demo firm
 db/custom.db          Seeded database
@@ -157,6 +140,39 @@ tests                 Node test runner
 docs/screenshots      Images in this README
 ```
 
-## Notes
+---
 
-This is a demo of one chambers, Shaheen Law Associates, with invented matters and clients. It runs on SQLite, and roles are stored as `ADMIN`, `LAWYER`, and `CLIENT`. Public figures on the home page are the counts in the database. Hearings, invoices, and messages also create an in-app notice, and an email when `RESEND_API_KEY` is set. Login and contact limits are stored in the database so they survive a restart of this single server. A production deployment would want Postgres, a real `AUTH_SECRET`, HTTPS, and a review of those limits before running more than one server.
+## ✅ Tests & scripts
+
+| Command | What it does |
+| --- | --- |
+| `bun run dev` | Development server on port 3000 |
+| `bun run test` | Access, password, session and upload tests |
+| `bun run lint` | ESLint |
+| `bun run db:generate` | `prisma generate` |
+| `bun run db:push` | Push the schema to SQLite |
+| `bun run build` | Production build with static assets copied into standalone output |
+| `bun run start` | Run the standalone server |
+
+---
+
+## 🚢 Deployment notes
+
+This is a demo of one chambers with invented data. It runs on SQLite and stores login and contact limits in the database so they survive a restart of this single server. A production deployment would want Postgres, a real `AUTH_SECRET`, HTTPS, and a review of those limits before running more than one server.
+
+---
+
+## 🗺 Roadmap ideas
+
+- 🗄️ Move to Postgres for multi-server deployments
+- 📅 Hearing calendar with reminders
+- 📤 Document sharing links with expiry
+- 🔍 Search across matters, clients and invoices
+
+---
+
+<div align="center">
+
+Justice, delivered with honour — and with role checks on every route.
+
+</div>
