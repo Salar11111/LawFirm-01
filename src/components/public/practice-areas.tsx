@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { ArrowRight, Check, Loader2 } from 'lucide-react'
 import * as Icons from 'lucide-react'
-import { motion } from 'framer-motion'
 import { api } from '@/lib/helpers'
 import type { PracticeArea } from '@/lib/types'
 
@@ -74,17 +73,11 @@ export function PracticeAreas() {
           </div>
         ) : (
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {areas.map((area, i) => (
-              <motion.div
-                key={area.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.05 }}
-              >
+            {areas.map((area) => (
+              <div key={area.id}>
                 <Card
                   onClick={() => setLocalSelected(area)}
-                  className="group h-full cursor-pointer p-6 transition-all hover:-translate-y-1 hover:shadow-xl hover:border-primary/40"
+                  className="group h-full cursor-pointer p-6 transition-all hover:-translate-y-0.5 hover:border-primary/40"
                 >
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                     {renderIcon(area.icon)}
@@ -96,7 +89,7 @@ export function PracticeAreas() {
                     <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                   </span>
                 </Card>
-              </motion.div>
+              </div>
             ))}
           </div>
         )}
@@ -194,14 +187,9 @@ export function PracticeAreasPage() {
         <div className="mt-12 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       ) : (
         <div className="mt-12 grid gap-6 md:grid-cols-2">
-          {areas.map((area, i) => (
-            <motion.div
-              key={area.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: i * 0.05 }}
-            >
-              <Card className="h-full p-6 transition-all hover:shadow-lg hover:border-primary/40">
+          {areas.map((area) => (
+            <div key={area.id}>
+              <Card className="h-full p-6 transition-all hover:-translate-y-0.5 hover:border-primary/40">
                 <div className="flex items-start gap-4">
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     {renderIcon(area.icon)}
@@ -226,7 +214,7 @@ export function PracticeAreasPage() {
                   </div>
                 </div>
               </Card>
-            </motion.div>
+            </div>
           ))}
         </div>
       )}
