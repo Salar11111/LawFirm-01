@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Linkedin, Mail, Phone, Calendar, Award, Loader2 } from 'lucide-react'
-import { motion } from 'framer-motion'
 import { api, initials } from '@/lib/helpers'
 import type { User } from '@/lib/types'
 
@@ -39,15 +38,9 @@ export function Team() {
           <div className="mt-12 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
         ) : (
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {team.map((member, i) => (
-              <motion.div
-                key={member.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.1 }}
-              >
-                <Card className="group h-full overflow-hidden p-0 transition-all hover:-translate-y-1 hover:shadow-xl">
+            {team.map((member) => (
+              <div key={member.id}>
+                <Card className="group h-full overflow-hidden p-0 transition-all hover:-translate-y-0.5 hover:border-primary/40">
                   {/* Header banner */}
                   <div className="relative h-28 bg-gradient-to-br from-primary to-primary/70">
                     <div className="absolute inset-0 bg-pattern-dots opacity-20" />
@@ -98,7 +91,7 @@ export function Team() {
                     </div>
                   </div>
                 </Card>
-              </motion.div>
+              </div>
             ))}
           </div>
         )}
