@@ -1,6 +1,5 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import { Card } from '@/components/ui/card'
 import { PhoneCall, FileSearch, Gavel, Trophy } from 'lucide-react'
 
@@ -47,14 +46,7 @@ export function Process() {
 
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {STEPS.map((step, i) => (
-              <motion.div
-                key={step.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.15 }}
-                className="relative text-center"
-              >
+              <div key={step.title} className="relative text-center">
                 <div className="relative mx-auto flex h-24 w-24 items-center justify-center">
                   <div className="absolute inset-0 rounded-full bg-primary/5" />
                   <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-background shadow-md ring-1 ring-border">
@@ -66,7 +58,7 @@ export function Process() {
                 </div>
                 <h3 className="mt-5 font-serif text-lg font-semibold text-foreground">{step.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
