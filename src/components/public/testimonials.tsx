@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Star, Quote, Loader2 } from 'lucide-react'
-import { motion } from 'framer-motion'
 import { api, initials } from '@/lib/helpers'
 import type { Review } from '@/lib/types'
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel'
@@ -36,15 +35,9 @@ export function Testimonials() {
           <div className="mt-12">
             <Carousel opts={{ align: 'start', loop: true }} className="w-full">
               <CarouselContent className="-ml-4">
-                {reviews.map((review, i) => (
+                {reviews.map((review) => (
                   <CarouselItem key={review.id} className="pl-4 md:basis-1/2 lg:basis-1/3">
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.4, delay: i * 0.05 }}
-                      className="h-full"
-                    >
+                    <div className="h-full">
                       <Card className="flex h-full flex-col p-6">
                         <Quote className="h-8 w-8 text-accent/40" />
                         <div className="mt-3 flex gap-0.5">
@@ -67,12 +60,12 @@ export function Testimonials() {
                           </div>
                         </div>
                       </Card>
-                    </motion.div>
+                    </div>
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious className="hidden sm:flex" />
-              <CarouselNext className="hidden sm:flex" />
+              <CarouselPrevious className="left-2 hidden lg:flex" />
+              <CarouselNext className="right-2 hidden lg:flex" />
             </Carousel>
           </div>
         )}
