@@ -5,7 +5,6 @@ import { useAppStore } from '@/store/app-store'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ArrowRight, CheckCircle2, Quote } from 'lucide-react'
-import { motion } from 'framer-motion'
 
 const VALUES = [
   {
@@ -43,13 +42,7 @@ export function About() {
       <div className="container mx-auto px-4 sm:px-6">
         <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
           {/* Left visual */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="relative order-2 lg:order-1"
-          >
+          <div className="relative order-2 lg:order-1">
             <div className="relative rounded-3xl bg-gradient-to-br from-primary/10 to-accent/10 p-8 lg:p-10">
               <Quote className="h-10 w-10 text-accent" />
               <p className="mt-4 font-serif text-xl leading-relaxed text-foreground lg:text-2xl">
@@ -71,16 +64,10 @@ export function About() {
                 <p className="mt-1 text-xs text-muted-foreground">Offices in Pakistan</p>
               </Card>
             </div>
-          </motion.div>
+          </div>
 
           {/* Right content */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="order-1 lg:order-2"
-          >
+          <div className="order-1 lg:order-2">
             <span className="text-sm font-semibold uppercase tracking-wider text-primary">About Our Firm</span>
             <h2 className="mt-3 font-serif text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
               A Legacy of Legal Excellence in Pakistan
@@ -112,19 +99,13 @@ export function About() {
               </Button>
               <Button variant="outline" onClick={() => openBooking()}>Schedule a Meeting</Button>
             </div>
-          </motion.div>
+          </div>
         </div>
 
         {/* Values */}
         <div className="mt-20 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {VALUES.map((value, i) => (
-            <motion.div
-              key={value.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.1 }}
-            >
+            <div key={value.title}>
               <Card className="h-full p-6">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/15 text-accent-foreground">
                   <span className="font-serif text-lg font-bold">{String(i + 1).padStart(2, '0')}</span>
@@ -132,7 +113,7 @@ export function About() {
                 <h3 className="mt-4 font-serif text-lg font-semibold text-foreground">{value.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{value.description}</p>
               </Card>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>
