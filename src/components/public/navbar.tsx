@@ -54,11 +54,11 @@ export function Navbar() {
   return (
     <header
       className={cn(
-        'sticky top-0 z-50 w-full border-b transition-colors duration-300',
+        'sticky top-0 z-50 w-full border-b transition-colors duration-150',
         scrolled ? 'border-border bg-background/95 backdrop-blur' : 'border-transparent bg-background',
       )}
     >
-      <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:h-20">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:h-20 lg:px-8">
         <Logo />
 
         <nav className="hidden items-center gap-1 lg:flex">
