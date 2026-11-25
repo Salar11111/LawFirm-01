@@ -23,28 +23,23 @@ import {
 import { cn } from '@/lib/utils'
 import { APPOINTMENT_TYPE_LABELS, APPOINTMENT_STATUS_LABELS } from './labels'
 import { LoadError } from '@/components/portal/load-error'
+import { useRequestState } from '@/hooks/use-request-state'
 
 export function AppointmentsSection() {
   const openBooking = useAppStore((s) => s.openBooking)
 
-  const [appointments, setAppointments] = useState<Appointment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState(false)
   const [attempt, setAttempt] = useState(0)
+  const { data, loading, error: loadError, settle, fail } = useRequestState<{ appointments: Appointment[] }>(String(attempt))
+  const appointments = data?.appointments ?? []
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    setLoadError(false)
     api<{ appointments: Appointment[] }>('/api/appointments')
-      .then(({ appointments: a }) => {
-        if (!cancelled) setAppointments(a ?? [])
+      .then((result) => {
+        if (!cancelled) settle({ appointments: result.appointments ?? [] })
       })
       .catch(() => {
-        if (!cancelled) setLoadError(true)
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) fail()
       })
     return () => {
       cancelled = true
