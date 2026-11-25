@@ -58,14 +58,10 @@ function Carousel({
     },
     plugins
   )
-  const [canScrollPrev, setCanScrollPrev] = React.useState(false)
-  const [canScrollNext, setCanScrollNext] = React.useState(false)
-
-  const onSelect = React.useCallback((api: CarouselApi) => {
-    if (!api) return
-    setCanScrollPrev(api.canScrollPrev())
-    setCanScrollNext(api.canScrollNext())
-  }, [])
+  // Embla drives arrow availability; derive it from the instance instead of
+  // mirroring it into state from an effect. The reducer only forces a render
+  // when Embla reports a change.
+  const [, rerender] = React.useReducer((count: number) => count + 1, 0)
 
   const scrollPrev = React.useCallback(() => {
     api?.scrollPrev()
@@ -95,14 +91,18 @@ function Carousel({
 
   React.useEffect(() => {
     if (!api) return
-    onSelect(api)
+    const onSelect = () => rerender()
     api.on("reInit", onSelect)
     api.on("select", onSelect)
 
     return () => {
-      api?.off("select", onSelect)
+      api.off("reInit", onSelect)
+      api.off("select", onSelect)
     }
-  }, [api, onSelect])
+  }, [api])
+
+  const canScrollPrev = api ? api.canScrollPrev() : false
+  const canScrollNext = api ? api.canScrollNext() : false
 
   return (
     <CarouselContext.Provider
