@@ -59,7 +59,12 @@ export function ClientsSection({ user, onOpenCase }: ClientsSectionProps) {
   const [clientCasesForId, setClientCasesForId] = useState<string | null>(null)
   const [toggling, setToggling] = useState<string | null>(null)
 
-  useEffect(() => { setPage(1) }, [search])
+  // Changing the search starts a new page of results, so reset the pager in
+  // the event handler instead of synchronising it from an effect.
+  const handleSearchChange = (value: string) => {
+    setSearch(value)
+    setPage(1)
+  }
 
   const loadClients = useCallback(async () => {
     const params = new URLSearchParams({ page: String(page), pageSize: '10' })
@@ -123,7 +128,7 @@ export function ClientsSection({ user, onOpenCase }: ClientsSectionProps) {
         subtitle={`${total} registered clients`}
         icon={<Users className="h-5 w-5" />}
         search={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Search clients by name, email, phone..."
         showBookButton={false}
       />
