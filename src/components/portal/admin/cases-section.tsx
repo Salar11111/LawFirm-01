@@ -55,7 +55,16 @@ export function CasesSection({ user, activeCaseId, onActiveCaseChange }: CasesSe
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [newOpen, setNewOpen] = useState(false)
 
-  useEffect(() => { setPage(1) }, [search, statusFilter])
+  // Changing a filter starts a new page of results, so reset the pager in the
+  // event handler instead of synchronising it from an effect.
+  const handleSearchChange = (value: string) => {
+    setSearch(value)
+    setPage(1)
+  }
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value)
+    setPage(1)
+  }
 
   const loadCases = useCallback(async () => {
     const params = new URLSearchParams({ page: String(page), pageSize: '10' })
@@ -115,11 +124,11 @@ export function CasesSection({ user, activeCaseId, onActiveCaseChange }: CasesSe
         subtitle={`${cases.length} matter${cases.length === 1 ? '' : 's'} on record`}
         icon={<Briefcase className="h-5 w-5" />}
         search={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Search by title, number, court..."
         actions={
           <>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={handleStatusChange}>
               <SelectTrigger className="h-9 w-[150px] gap-2">
                 <Filter className="h-3.5 w-3.5 text-muted-foreground" />
                 <SelectValue />
