@@ -24,47 +24,60 @@ import {
 import { cn } from '@/lib/utils'
 import { LoadError } from '@/components/portal/load-error'
 import { toast } from 'sonner'
+import { useRequestState } from '@/hooks/use-request-state'
 
 export function MessagesSection() {
   const user = useAppStore((s) => s.user)
 
-  const [team, setTeam] = useState<User[]>([])
-  const [teamLoading, setTeamLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
-  const [msgsLoading, setMsgsLoading] = useState(false)
   const [sending, setSending] = useState(false)
   const [draft, setDraft] = useState('')
 
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const [teamError, setTeamError] = useState(false)
   const [teamAttempt, setTeamAttempt] = useState(0)
-  const [msgError, setMsgError] = useState(false)
   const [msgAttempt, setMsgAttempt] = useState(0)
+
+  const {
+    data: teamData,
+    loading: teamLoading,
+    error: teamError,
+    settle: settleTeam,
+    fail: failTeam,
+  } = useRequestState<{ cases: { lawyer?: User }[] }>(String(teamAttempt))
+  const lawyerMap = new Map<string, User>()
+  for (const matter of teamData?.cases ?? []) {
+    if (matter.lawyer) lawyerMap.set(matter.lawyer.id, matter.lawyer)
+  }
+  const team = [...lawyerMap.values()]
+
+  const {
+    data: messageData,
+    loading: msgsLoading,
+    error: msgError,
+    settle: settleMessages,
+    fail: failMessages,
+    update: updateMessages,
+  } = useRequestState<{ messages: Message[] }>(selectedId ? `${selectedId}:${msgAttempt}` : '')
+  const messages = messageData?.messages ?? []
 
   // Fetch team list once
   useEffect(() => {
     let cancelled = false
-    setTeamLoading(true)
-    setTeamError(false)
     api<{ cases: { lawyer?: User }[] }>('/api/cases')
-      .then(({ cases }) => {
+      .then((result) => {
         if (cancelled) return
+        settleTeam(result)
         const lawyers = new Map<string, User>()
-        for (const matter of cases ?? []) {
+        for (const matter of result.cases ?? []) {
           if (matter.lawyer) lawyers.set(matter.lawyer.id, matter.lawyer)
         }
         const list = [...lawyers.values()]
-        setTeam(list)
         if (list.length > 0) setSelectedId(list[0].id)
       })
       .catch(() => {
-        if (!cancelled) setTeamError(true)
-      })
-      .finally(() => {
-        if (!cancelled) setTeamLoading(false)
+        if (!cancelled) failTeam()
       })
     return () => {
       cancelled = true
@@ -75,17 +88,12 @@ export function MessagesSection() {
   useEffect(() => {
     if (!selectedId) return
     let cancelled = false
-    setMsgsLoading(true)
-    setMsgError(false)
     api<{ messages: Message[] }>(`/api/messages?partnerId=${selectedId}`)
-      .then(({ messages: m }) => {
-        if (!cancelled) setMessages(m ?? [])
+      .then((result) => {
+        if (!cancelled) settleMessages({ messages: result.messages ?? [] })
       })
       .catch(() => {
-        if (!cancelled) setMsgError(true)
-      })
-      .finally(() => {
-        if (!cancelled) setMsgsLoading(false)
+        if (!cancelled) failMessages()
       })
     return () => {
       cancelled = true
@@ -120,7 +128,7 @@ export function MessagesSection() {
         method: 'POST',
         body: JSON.stringify({ receiverId: selectedId, content: text }),
       })
-      setMessages((prev) => [...prev, message])
+      updateMessages((current) => ({ ...current, messages: [...current.messages, message] }))
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to send message')
       setDraft(text)
