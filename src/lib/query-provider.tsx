@@ -21,7 +21,7 @@ function createQueryClient() {
 
 // Memoize the QueryClient to avoid creating a new instance on every render
 export function QueryProvider({ children }: { children: React.ReactNode }) {
-  const queryClient = useMemo(createQueryClient, [])
+  const queryClient = useMemo(() => createQueryClient(), [])
   return (
     <QueryClientProvider client={queryClient}>
       {children}
