@@ -108,7 +108,8 @@ function CaseFormBody({
       method: 'POST',
       body: JSON.stringify({
         ...form,
-        nextHearing: form.nextHearing || null,
+        // Omit the field when empty; the API schema expects a string or no value.
+        nextHearing: form.nextHearing || undefined,
       }),
     })
       .then(() => {
