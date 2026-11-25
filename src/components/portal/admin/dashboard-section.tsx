@@ -43,6 +43,7 @@ import type { Case, Invoice } from '@/lib/types'
 import { SectionHeader } from './section-header'
 import { LoadError } from '@/components/portal/load-error'
 import { AuditFeed, NoticeList } from '@/components/portal/notice-list'
+import { useRequestState } from '@/hooks/use-request-state'
 
 interface FirmStats {
   cases: number
@@ -117,33 +118,30 @@ interface DashboardProps {
 }
 
 export function DashboardSection({ onOpenCase }: DashboardProps) {
-  const [stats, setStats] = useState<FirmStats | null>(null)
-  const [cases, setCases] = useState<Case[]>([])
-  const [invoices, setInvoices] = useState<Invoice[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState(false)
   const [attempt, setAttempt] = useState(0)
+  const {
+    data,
+    loading,
+    error: loadError,
+    settle,
+    fail,
+  } = useRequestState<{ stats: FirmStats; cases: Case[]; invoices: Invoice[] }>(String(attempt))
+  const stats = data?.stats ?? null
+  const cases = data?.cases ?? []
+  const invoices = data?.invoices ?? []
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    setLoadError(false)
     Promise.all([
       api<{ stats: FirmStats }>('/api/stats'),
       api<{ cases: Case[] }>('/api/cases'),
       api<{ invoices: Invoice[] }>('/api/invoices'),
     ])
       .then(([s, c, inv]) => {
-        if (cancelled) return
-        setStats(s.stats)
-        setCases(c.cases)
-        setInvoices(inv.invoices)
+        if (!cancelled) settle({ stats: s.stats, cases: c.cases, invoices: inv.invoices })
       })
       .catch(() => {
-        if (!cancelled) setLoadError(true)
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) fail()
       })
     return () => {
       cancelled = true
