@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { caseCreateSchema, caseUpdateSchema } from '@/lib/validations'
+import { verifyCsrfToken } from '@/lib/csrf'
 import { notifyUser, recordAudit } from '@/lib/activity'
 import { getCases, createCase, updateCase, assertCaseAccess } from '@/lib/services'
 
@@ -30,6 +31,9 @@ export async function GET(request: NextRequest) {
 
 // POST a new case (admin/lawyer only)
 export async function POST(request: NextRequest) {
+  if (!verifyCsrfToken(request)) {
+    return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 })
+  }
   const user = await getCurrentUser()
   if (!user || (user.role !== 'ADMIN' && user.role !== 'LAWYER')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
@@ -63,6 +67,9 @@ export async function POST(request: NextRequest) {
 
 // PATCH (update) a case
 export async function PATCH(request: NextRequest) {
+  if (!verifyCsrfToken(request)) {
+    return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 })
+  }
   const user = await getCurrentUser()
   if (!user || (user.role !== 'ADMIN' && user.role !== 'LAWYER')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
