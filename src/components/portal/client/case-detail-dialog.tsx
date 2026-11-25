@@ -32,6 +32,7 @@ import {
   INVOICE_STATUS_LABELS,
 } from './labels'
 import { LoadError } from '@/components/portal/load-error'
+import { useRequestState } from '@/hooks/use-request-state'
 
 interface Props {
   caseId: string | null
@@ -59,24 +60,18 @@ export function CaseDetailDialog({ caseId, open, onOpenChange }: Props) {
 }
 
 function CaseDetailBody({ caseId }: { caseId: string }) {
-  const [data, setData] = useState<Case | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState(false)
   const [attempt, setAttempt] = useState(0)
+  const { data: caseData, loading, error: loadError, settle, fail } = useRequestState<{ case: Case }>(`${caseId}:${attempt}`)
+  const data = caseData?.case ?? null
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    setLoadError(false)
     api<{ case: Case }>(`/api/cases/${caseId}`)
-      .then(({ case: c }) => {
-        if (!cancelled) setData(c)
+      .then((result) => {
+        if (!cancelled) settle(result)
       })
       .catch(() => {
-        if (!cancelled) setLoadError(true)
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) fail()
       })
     return () => {
       cancelled = true
