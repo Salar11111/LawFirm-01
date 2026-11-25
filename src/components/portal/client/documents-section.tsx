@@ -40,6 +40,7 @@ import { cn } from '@/lib/utils'
 import { DOCUMENT_TYPE_LABELS } from './labels'
 import { LoadError } from '@/components/portal/load-error'
 import { DOCUMENT_TYPES } from '@/lib/helpers'
+import { useRequestState } from '@/hooks/use-request-state'
 
 const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   CONTRACT: FileSignature,
@@ -52,26 +53,20 @@ const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
 }
 
 export function DocumentsSection() {
-  const [documents, setDocuments] = useState<DocumentItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState(false)
   const [attempt, setAttempt] = useState(0)
+  const { data, loading, error: loadError, settle, fail } = useRequestState<{ documents: DocumentItem[] }>(String(attempt))
+  const documents = data?.documents ?? []
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('ALL')
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    setLoadError(false)
     api<{ documents: DocumentItem[] }>('/api/documents')
-      .then(({ documents: d }) => {
-        if (!cancelled) setDocuments(d ?? [])
+      .then((result) => {
+        if (!cancelled) settle({ documents: result.documents ?? [] })
       })
       .catch(() => {
-        if (!cancelled) setLoadError(true)
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) fail()
       })
     return () => {
       cancelled = true
