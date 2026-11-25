@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build && node scripts/copy-standalone.mjs",
-    "start": "node .next/standalone/server.js",
+    "start": "node scripts/start-standalone.mjs",
     "lint": "eslint .",
     "test": "tsx --test tests/access.test.ts tests/hardening.test.ts",
     "db:push": "prisma db push --accept-data-loss",
