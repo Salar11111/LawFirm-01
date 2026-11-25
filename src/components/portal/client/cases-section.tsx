@@ -34,48 +34,52 @@ import { CASE_STATUSES } from '@/lib/helpers'
 import { CaseDetailDialog } from './case-detail-dialog'
 import { LoadError } from '@/components/portal/load-error'
 import { ListPager } from '@/components/portal/list-pager'
+import { useRequestState } from '@/hooks/use-request-state'
 
 export function CasesSection() {
   const user = useAppStore((s) => s.user)
   const openBooking = useAppStore((s) => s.openBooking)
 
-  const [cases, setCases] = useState<Case[]>([])
-  const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
 
-  useEffect(() => { setPage(1) }, [search, statusFilter])
+  const { data, loading, error: loadError, settle, fail } = useRequestState<{ cases: Case[]; total: number }>(
+    `${attempt}:${page}:${search.trim()}:${statusFilter}`,
+  )
+  const cases = data?.cases ?? []
+  const total = data?.total ?? 0
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    setLoadError(false)
     const params = new URLSearchParams({ page: String(page), pageSize: '10' })
     if (statusFilter !== 'ALL') params.set('status', statusFilter)
     if (search.trim()) params.set('search', search.trim())
     api<{ cases: Case[]; total: number }>(`/api/cases?${params.toString()}`)
-      .then(({ cases: c, total: count }) => {
-        if (!cancelled) {
-          setCases(c ?? [])
-          setTotal(count ?? 0)
-        }
+      .then((result) => {
+        if (!cancelled) settle({ cases: result.cases ?? [], total: result.total ?? 0 })
       })
       .catch(() => {
-        if (!cancelled) setLoadError(true)
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) fail()
       })
     return () => {
       cancelled = true
     }
   }, [attempt, page, search, statusFilter])
+
+  // Changing a filter starts a new page of results, so reset the pager in the
+  // event handler instead of synchronising it from an effect.
+  const handleSearchChange = (value: string) => {
+    setSearch(value)
+    setPage(1)
+  }
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value)
+    setPage(1)
+  }
 
   const openCase = (id: string) => {
     setSelectedId(id)
@@ -100,12 +104,12 @@ export function CasesSection() {
           <Input
             placeholder="Search by title, number, court..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-9"
           />
         </div>
         <div className="flex items-center gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={handleStatusChange}>
             <SelectTrigger className="w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">All statuses</SelectItem>
