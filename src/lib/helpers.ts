@@ -146,34 +146,31 @@ export {
   DOCUMENT_TYPES,
 } from '@/lib/enums'
 
-function getClientCsrfToken(): string | null {
+function getCsrfCookie(): string | null {
   if (typeof document === 'undefined') return null
   const match = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]+)/)
-  if (match) {
-    try {
-      return decodeURIComponent(match[1])
-    } catch {
-      // fall through to localStorage
-    }
+  if (!match) return null
+  try {
+    return decodeURIComponent(match[1])
+  } catch {
+    return match[1]
   }
-  if (typeof localStorage !== 'undefined') {
-    return localStorage.getItem('csrf-token')
-  }
-  return null
 }
 
 let csrfRequest: Promise<string | null> | null = null
 
 async function ensureCsrfToken(): Promise<string | null> {
-  const existing = getClientCsrfToken()
+  // The server validates the header against the cookie, so only the live
+  // cookie is authoritative. A token kept in localStorage can outlive the
+  // cookie and make every mutation fail with a 403.
+  const existing = getCsrfCookie()
   if (existing) return existing
   if (!csrfRequest) {
     csrfRequest = fetch('/api/csrf', { credentials: 'same-origin' })
       .then(async (res) => {
+        if (!res.ok) return null
         const data = (await res.json().catch(() => ({}))) as { token?: unknown }
-        const token = typeof data.token === 'string' ? data.token : null
-        if (token && typeof localStorage !== 'undefined') localStorage.setItem('csrf-token', token)
-        return getClientCsrfToken() || token
+        return getCsrfCookie() || (typeof data.token === 'string' ? data.token : null)
       })
       .catch(() => null)
       .finally(() => {
