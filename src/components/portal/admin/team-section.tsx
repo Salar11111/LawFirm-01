@@ -12,27 +12,22 @@ import { api, initials } from '@/lib/helpers'
 import type { User } from '@/lib/types'
 import { SectionHeader } from './section-header'
 import { LoadError } from '@/components/portal/load-error'
+import { useRequestState } from '@/hooks/use-request-state'
 
 export function TeamSection() {
   const openBooking = useAppStore((s) => s.openBooking)
-  const [team, setTeam] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState(false)
   const [attempt, setAttempt] = useState(0)
+  const { data, loading, error: loadError, settle, fail } = useRequestState<{ team: User[] }>(String(attempt))
+  const team = data?.team ?? []
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    setLoadError(false)
     api<{ team: User[] }>('/api/team')
-      .then(({ team }) => {
-        if (!cancelled) setTeam(team)
+      .then((result) => {
+        if (!cancelled) settle(result)
       })
       .catch(() => {
-        if (!cancelled) setLoadError(true)
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) fail()
       })
     return () => {
       cancelled = true
