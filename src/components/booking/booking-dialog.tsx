@@ -46,16 +46,24 @@ export function BookingDialog() {
   })
 
   useEffect(() => {
-    if (bookingOpen) {
-      api<{ team: User[] }>('/api/team').then(({ team }) => {
-        setTeam(team)
-        const initial = bookingLawyerId || team[0]?.id || ''
-        setForm((p) => ({ ...p, lawyerId: initial }))
-      }).catch(() => toast.error('Failed to load lawyers'))
-      // default date = tomorrow
+    if (!bookingOpen) return
+    let cancelled = false
+    // Initialise the form in response to the team request resolving, rather
+    // than mirroring props/state into the form from the effect body.
+    api<{ team: User[] }>('/api/team').then(({ team }) => {
+      if (cancelled) return
+      setTeam(team)
+      const initial = bookingLawyerId || team[0]?.id || ''
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
-      setForm((p) => ({ ...p, date: tomorrow.toISOString().split('T')[0] }))
+      setForm((p) => ({
+        ...p,
+        lawyerId: initial,
+        date: p.date || tomorrow.toISOString().split('T')[0],
+      }))
+    }).catch(() => toast.error('Failed to load lawyers'))
+    return () => {
+      cancelled = true
     }
   }, [bookingOpen, bookingLawyerId])
 
