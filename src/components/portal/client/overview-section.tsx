@@ -24,6 +24,7 @@ import { UPDATE_TYPE_LABELS, CASE_STATUS_LABELS, APPOINTMENT_TYPE_LABELS } from 
 import type { PortalSection } from './portal-sidebar'
 import { LoadError } from '@/components/portal/load-error'
 import { NoticeList } from '@/components/portal/notice-list'
+import { useRequestState } from '@/hooks/use-request-state'
 
 const ACTIVE_STATUSES = ['PENDING', 'ACTIVE', 'HEARING', 'ADJOURNED']
 
@@ -36,19 +37,28 @@ export function OverviewSection({ onNavigate }: { onNavigate: (s: PortalSection)
   const user = useAppStore((s) => s.user)
   const openBooking = useAppStore((s) => s.openBooking)
 
-  const [cases, setCases] = useState<Case[]>([])
-  const [appointments, setAppointments] = useState<Appointment[]>([])
-  const [invoices, setInvoices] = useState<Invoice[]>([])
-  const [documents, setDocuments] = useState<DocumentItem[]>([])
-  const [updatesFeed, setUpdatesFeed] = useState<UpdateFeedItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState(false)
   const [attempt, setAttempt] = useState(0)
+  const {
+    data,
+    loading,
+    error: loadError,
+    settle,
+    fail,
+  } = useRequestState<{
+    cases: Case[]
+    appointments: Appointment[]
+    invoices: Invoice[]
+    documents: DocumentItem[]
+    updatesFeed: UpdateFeedItem[]
+  }>(String(attempt))
+  const cases = data?.cases ?? []
+  const appointments = data?.appointments ?? []
+  const invoices = data?.invoices ?? []
+  const documents = data?.documents ?? []
+  const updatesFeed = data?.updatesFeed ?? []
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    setLoadError(false)
     Promise.all([
       api<{ cases: Case[] }>('/api/cases'),
       api<{ appointments: Appointment[] }>('/api/appointments'),
@@ -61,10 +71,6 @@ export function OverviewSection({ onNavigate }: { onNavigate: (s: PortalSection)
         const aptList = a.appointments ?? []
         const invList = i.invoices ?? []
         const docList = d.documents ?? []
-        setCases(caseList)
-        setAppointments(aptList)
-        setInvoices(invList)
-        setDocuments(docList)
 
         // Build recent updates feed from the 3 most recently updated cases
         const top = caseList.slice(0, 3)
@@ -84,13 +90,16 @@ export function OverviewSection({ onNavigate }: { onNavigate: (s: PortalSection)
           })
         })
         feed.sort((x, y) => new Date(y.createdAt).getTime() - new Date(x.createdAt).getTime())
-        setUpdatesFeed(feed.slice(0, 5))
+        settle({
+          cases: caseList,
+          appointments: aptList,
+          invoices: invList,
+          documents: docList,
+          updatesFeed: feed.slice(0, 5),
+        })
       })
       .catch(() => {
-        if (!cancelled) setLoadError(true)
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) fail()
       })
     return () => {
       cancelled = true
