@@ -26,26 +26,21 @@ import {
 import { cn } from '@/lib/utils'
 import { INVOICE_STATUS_LABELS } from './labels'
 import { LoadError } from '@/components/portal/load-error'
+import { useRequestState } from '@/hooks/use-request-state'
 
 export function InvoicesSection() {
-  const [invoices, setInvoices] = useState<Invoice[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState(false)
   const [attempt, setAttempt] = useState(0)
+  const { data, loading, error: loadError, settle, fail } = useRequestState<{ invoices: Invoice[] }>(String(attempt))
+  const invoices = data?.invoices ?? []
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    setLoadError(false)
     api<{ invoices: Invoice[] }>('/api/invoices')
-      .then(({ invoices: i }) => {
-        if (!cancelled) setInvoices(i ?? [])
+      .then((result) => {
+        if (!cancelled) settle({ invoices: result.invoices ?? [] })
       })
       .catch(() => {
-        if (!cancelled) setLoadError(true)
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) fail()
       })
     return () => {
       cancelled = true
