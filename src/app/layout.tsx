@@ -32,7 +32,12 @@ export const metadata: Metadata = {
   },
   description:
     'Shaheen Law Associates — a Pakistani law firm offering counsel in family, corporate, criminal, property, banking, constitutional, tax, and cyber law. Chambers in Karachi, Lahore, and Islamabad.',
-  icons: { icon: '/logo.svg' },
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any', type: 'image/x-icon' },
+      { url: '/logo.svg', type: 'image/svg+xml' },
+    ],
+  },
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
